@@ -1,0 +1,17 @@
+# Ensure consistent line endings and text handling across platforms.
+* text=auto eol=lf
+
+*.ts text
+*.tsx text
+*.js text
+*.json text
+*.md text
+
+# Native binaries and images should not be modified.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.apk binary
+*.aab binary
