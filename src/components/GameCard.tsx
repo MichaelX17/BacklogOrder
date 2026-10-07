@@ -1,8 +1,8 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import StatusBadge from '@/components/StatusBadge';
-import type { ScoredGame } from '@/utils/sorting';
 import type { GameStatus } from '@/types';
+import type { ScoredGame } from '@/utils/sorting';
 
 interface GameCardProps {
   game: ScoredGame;
@@ -11,6 +11,20 @@ interface GameCardProps {
 }
 
 export default function GameCard({ game, status, onPress }: GameCardProps) {
+  const scoreText =
+    game.score !== null
+      ? game.score.toFixed(2)
+      : status !== undefined && game.playtime !== null && game.playtime <= 0
+        ? '∞'
+        : null;
+
+  const scoreDetail =
+    game.metacritic !== null
+      ? `Metacritic ${game.metacritic}`
+      : game.rating !== null
+        ? `RAWG ${game.rating.toFixed(1)}/5`
+        : 'No score';
+
   return (
     <Pressable
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
@@ -27,7 +41,8 @@ export default function GameCard({ game, status, onPress }: GameCardProps) {
         </Text>
         <Text style={styles.meta} numberOfLines={1}>
           {game.playtime !== null ? `${game.playtime}h` : 'Unknown playtime'}
-          {game.metacritic !== null ? ` · Metacritic ${game.metacritic}` : ''}
+          {' · '}
+          {scoreDetail}
         </Text>
         {status !== undefined ? (
           <View style={styles.badgeRow}>
@@ -35,9 +50,9 @@ export default function GameCard({ game, status, onPress }: GameCardProps) {
           </View>
         ) : null}
       </View>
-      {game.score !== null ? (
+      {scoreText !== null ? (
         <View style={styles.scoreBadge}>
-          <Text style={styles.scoreText}>{game.score.toFixed(2)}</Text>
+          <Text style={styles.scoreText}>{scoreText}</Text>
         </View>
       ) : null}
     </Pressable>

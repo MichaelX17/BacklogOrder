@@ -11,11 +11,7 @@ export function isMultiplayerGame(game: RawgGame): boolean {
   return game.tags.some((tag) => MULTIPLAYER_TAG_NAMES.has(tag.name.toLowerCase()));
 }
 
-export function mapRawgGame(game: RawgGame): NewGame | null {
-  if (isMultiplayerGame(game)) {
-    return null;
-  }
-
+export function mapRawgGame(game: RawgGame): NewGame {
   return {
     rawgId: game.id,
     name: game.name,
@@ -26,7 +22,7 @@ export function mapRawgGame(game: RawgGame): NewGame | null {
     genres: game.genres.map((genre) => genre.name),
     platforms: game.platforms.map((platform) => platform.platform.name),
     tags: game.tags.map((tag) => tag.name),
-    isMultiplayer: false,
+    isMultiplayer: isMultiplayerGame(game),
     isManual: false,
   };
 }

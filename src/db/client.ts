@@ -1,21 +1,24 @@
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/expo-sqlite';
 import * as expoSQLite from 'expo-sqlite';
+import { Platform } from 'react-native';
 
 import { runMigrations } from './migrations/runner';
 import * as schema from './schema';
 
-const sqlite = expoSQLite.openDatabaseSync('backlogorder.db');
+export const isWeb = Platform.OS === 'web';
 
-export const db = drizzle(sqlite, { schema });
+const sqlite = isWeb ? null : expoSQLite.openDatabaseSync('backlogorder.db');
+
+export const db = sqlite === null ? null : drizzle(sqlite, { schema });
 
 let initialized = false;
 
 export function initializeDatabase(): void {
-  if (initialized) {
+  if (initialized || isWeb) {
     return;
   }
-  db.run(sql`PRAGMA foreign_keys = ON;`);
-  runMigrations(db);
+  db?.run(sql`PRAGMA foreign_keys = ON;`);
+  runMigrations(db as never);
   initialized = true;
 }

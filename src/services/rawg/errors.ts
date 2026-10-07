@@ -31,7 +31,7 @@ export function rawgErrorMessage(error: RawgApiError): string {
     case 'network':
       return 'No network connection. Check your internet and try again.';
     case 'unauthorized':
-      return 'This API key is invalid. Get a key at https://rawg.io/keys.';
+      return 'This API key is invalid. Get a key at https://rawg.io/login?forward=developer.';
     case 'rate-limited':
       return 'RAWG rate limit reached. Wait a moment and try again.';
     case 'not-found':

@@ -85,10 +85,39 @@ async function request<T>(
   }
 }
 
+async function hydrateGameData(game: RawgGame, apiKey: string): Promise<RawgGame> {
+  const needsDetailFetch =
+    game.metacritic === null ||
+    game.playtime === null ||
+    game.tags.length === 0 ||
+    game.genres.length === 0 ||
+    game.platforms.length === 0;
+
+  if (!needsDetailFetch) {
+    return game;
+  }
+
+  try {
+    const detail = await fetchGame(game.id, apiKey);
+    return {
+      ...game,
+      metacritic: game.metacritic ?? detail.metacritic ?? null,
+      playtime: game.playtime ?? detail.playtime ?? null,
+      rating: game.rating ?? detail.rating ?? null,
+      background_image: game.background_image ?? detail.background_image ?? null,
+      genres: game.genres.length > 0 ? game.genres : detail.genres,
+      platforms: game.platforms.length > 0 ? game.platforms : detail.platforms,
+      tags: game.tags.length > 0 ? game.tags : detail.tags,
+    };
+  } catch {
+    return game;
+  }
+}
+
 export async function searchGames(query: string, apiKey: string): Promise<RawgGame[]> {
   const path = `/games?search=${encodeURIComponent(query)}&page_size=20`;
   const response = await request<RawgGamesResponse>(path, apiKey, isRawgGamesResponse);
-  return response.results;
+  return Promise.all(response.results.map((game) => hydrateGameData(game, apiKey)));
 }
 
 export async function fetchGame(id: number, apiKey: string): Promise<RawgGame> {

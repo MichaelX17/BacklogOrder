@@ -45,7 +45,7 @@ export default function OnboardingScreen() {
   }
 
   function handleGetKey() {
-    Linking.openURL('https://rawg.io/keys');
+    Linking.openURL('https://rawg.io/login?forward=developer');
   }
 
   return (
@@ -85,7 +85,7 @@ export default function OnboardingScreen() {
             )}
           </Pressable>
           <Pressable onPress={handleGetKey} style={styles.link}>
-            <Text style={styles.linkText}>Get a free key at rawg.io/keys</Text>
+            <Text style={styles.linkText}>Get a free key at RAWG</Text>
           </Pressable>
           <Text style={styles.attribution}>Includes data from the RAWG API — https://rawg.io</Text>
         </View>

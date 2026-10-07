@@ -46,7 +46,7 @@ function AddToListModalContent({ game, onClose, onAdded }: AddToListModalContent
 
   function handleAdd() {
     const mapped = mapRawgGame(game);
-    if (mapped === null) {
+    if (mapped.isMultiplayer) {
       setError('This game is multiplayer and cannot be added.');
       return;
     }

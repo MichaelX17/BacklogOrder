@@ -16,7 +16,6 @@ import AddToListModal from '@/components/AddToListModal';
 import { useDebouncedValue } from '@/features/games/useDebouncedValue';
 import { searchGames } from '@/services/rawg/client';
 import { RawgApiError, rawgErrorMessage } from '@/services/rawg/errors';
-import { isMultiplayerGame } from '@/services/rawg/mapper';
 import type { RawgGame } from '@/services/rawg/types';
 import { getApiKey } from '@/services/secureStore';
 
@@ -62,7 +61,7 @@ export default function SearchScreen() {
         if (requestIdRef.current !== requestId) {
           return;
         }
-        setResults(games.filter((game) => !isMultiplayerGame(game)));
+        setResults(games);
       } catch (unknownError) {
         if (requestIdRef.current !== requestId) {
           return;
@@ -94,7 +93,11 @@ export default function SearchScreen() {
             {item.name}
           </Text>
           <Text style={styles.gameMeta}>
-            {item.metacritic !== null ? `Metacritic ${item.metacritic}` : 'No Metacritic'}
+            {item.metacritic !== null
+              ? `Metacritic ${item.metacritic}`
+              : item.rating !== null
+                ? `RAWG ${item.rating.toFixed(1)}/5`
+                : 'No score'}
             {' · '}
             {item.playtime !== null ? `${item.playtime}h` : 'Unknown playtime'}
           </Text>

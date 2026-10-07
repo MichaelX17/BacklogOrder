@@ -1,8 +1,9 @@
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -15,7 +16,8 @@ import EmptyState from '@/components/EmptyState';
 import { getApiKey } from '@/services/secureStore';
 import { useGamesStore } from '@/stores/gamesStore';
 import { useListsStore } from '@/stores/listsStore';
-import { toScoredGame } from '@/utils/sorting';
+import { computeScore } from '@/utils/score';
+import { findRecommendation } from '@/utils/recommendation';
 import type { GameList } from '@/types';
 
 export default function HomeScreen() {
@@ -24,8 +26,10 @@ export default function HomeScreen() {
   const allEntries = useGamesStore((state) => state.allEntries);
   const loadLists = useListsStore((state) => state.loadLists);
   const loadAllEntries = useGamesStore((state) => state.loadAllEntries);
+  const updateStatus = useGamesStore((state) => state.updateStatus);
   const createList = useListsStore((state) => state.createList);
   const [newListName, setNewListName] = useState('');
+  const [skipCount, setSkipCount] = useState(0);
 
   useEffect(() => {
     loadLists();
@@ -46,11 +50,17 @@ export default function HomeScreen() {
     gameCountByList.set(entry.listId, current + 1);
   }
 
-  const topPick = allEntries
-    .filter((entry) => entry.status === 'Backlog')
-    .map((entry) => toScoredGame(entry.game))
-    .filter((game) => game.score !== null)
-    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))[0];
+  const recommendation = useMemo(
+    () => findRecommendation(allEntries, skipCount),
+    [allEntries, skipCount],
+  );
+  const recommendationScore = recommendation !== null ? computeScore(recommendation.game) : null;
+  const recommendationScoreText =
+    recommendation !== null && recommendation.game.playtime !== null && recommendation.game.playtime <= 0
+      ? '∞'
+      : recommendationScore !== null
+        ? recommendationScore.toFixed(2)
+        : '—';
 
   function handleCreateList() {
     const trimmed = newListName.trim();
@@ -59,6 +69,19 @@ export default function HomeScreen() {
     }
     createList(trimmed);
     setNewListName('');
+  }
+
+  function handleStartPlaying() {
+    if (recommendation === null) {
+      return;
+    }
+
+    updateStatus(recommendation.listId, recommendation.game.id, 'Playing');
+    setSkipCount(0);
+  }
+
+  function handleSkip() {
+    setSkipCount((current) => current + 1);
   }
 
   function renderList({ item }: { item: GameList }) {
@@ -96,20 +119,41 @@ export default function HomeScreen() {
         contentContainerStyle={styles.content}
         ListHeaderComponent={
           <View>
-            {topPick !== undefined ? (
-              <Pressable
-                style={({ pressed }) => [styles.pickCard, pressed && styles.listRowPressed]}
-                onPress={() => router.push(`/game/${topPick.id}`)}
-              >
-                <Text style={styles.pickLabel}>TOP PICK</Text>
-                <Text style={styles.pickName} numberOfLines={2}>
-                  {topPick.name}
-                </Text>
-                <Text style={styles.pickMeta}>
-                  Score {topPick.score?.toFixed(2)}
-                  {topPick.playtime !== null ? ` · ${topPick.playtime}h` : ''}
-                </Text>
-              </Pressable>
+            {recommendation !== null ? (
+              <View style={styles.pickCard}>
+                <Pressable
+                  onPress={() =>
+                    router.push(`/game/${recommendation.game.id}?listId=${recommendation.listId}`)
+                  }
+                  style={styles.pickContent}
+                >
+                  {recommendation.game.cover !== null ? (
+                    <Image source={{ uri: recommendation.game.cover }} style={styles.pickCover} />
+                  ) : (
+                    <View style={[styles.pickCover, styles.pickCoverPlaceholder]} />
+                  )}
+                  <View style={styles.pickInfo}>
+                    <Text style={styles.pickLabel}>RECOMMENDATION</Text>
+                    <Text style={styles.pickName} numberOfLines={2}>
+                      {recommendation.game.name}
+                    </Text>
+                    <Text style={styles.pickMeta}>
+                      {recommendation.status} · Score {recommendationScoreText}
+                      {recommendation.game.playtime !== null
+                        ? ` · ${recommendation.game.playtime}h`
+                        : ''}
+                    </Text>
+                  </View>
+                </Pressable>
+                <View style={styles.actionRow}>
+                  <Pressable style={styles.primaryAction} onPress={handleStartPlaying}>
+                    <Text style={styles.primaryActionText}>Start playing</Text>
+                  </Pressable>
+                  <Pressable style={styles.secondaryAction} onPress={handleSkip}>
+                    <Text style={styles.secondaryActionText}>Skip</Text>
+                  </Pressable>
+                </View>
+              </View>
             ) : null}
             <View style={styles.createRow}>
               <TextInput
@@ -163,6 +207,23 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
   },
+  pickContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  pickCover: {
+    width: 72,
+    height: 96,
+    borderRadius: 8,
+    backgroundColor: '#2c2c2c',
+  },
+  pickCoverPlaceholder: {
+    backgroundColor: '#3a3a3a',
+  },
+  pickInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
   pickLabel: {
     fontSize: 11,
     fontWeight: 'bold',
@@ -179,6 +240,34 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 14,
     color: '#cccccc',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+  },
+  primaryAction: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  primaryActionText: {
+    color: '#111111',
+    fontWeight: '700',
+  },
+  secondaryAction: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ffffff',
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  secondaryActionText: {
+    color: '#ffffff',
+    fontWeight: '600',
   },
   createRow: {
     flexDirection: 'row',

@@ -1,4 +1,4 @@
-import { computeScore, normalizedRating } from '../score';
+import { computeScore, getScoreDisplay, normalizedRating } from '../score';
 
 describe('normalizedRating', () => {
   it('returns metacritic when present', () => {
@@ -15,6 +15,30 @@ describe('normalizedRating', () => {
 
   it('returns null when both sources are missing', () => {
     expect(normalizedRating(null, null)).toBeNull();
+  });
+});
+
+describe('getScoreDisplay', () => {
+  it('falls back to the RAWG rating label when metacritic is missing', () => {
+    expect(
+      getScoreDisplay({ metacritic: null, rating: 4.4, playtime: 12, inList: false }),
+    ).toEqual({
+      text: '4.40',
+      value: 88,
+      isInfinite: false,
+      source: 'rating',
+    });
+  });
+
+  it('shows an infinite badge for in-list entries with zero hours', () => {
+    expect(
+      getScoreDisplay({ metacritic: null, rating: 4.4, playtime: 0, inList: true }),
+    ).toEqual({
+      text: '∞',
+      value: null,
+      isInfinite: true,
+      source: 'rating',
+    });
   });
 });
 

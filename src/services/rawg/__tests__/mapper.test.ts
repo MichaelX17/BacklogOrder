@@ -71,11 +71,23 @@ describe('mapRawgGame', () => {
     });
   });
 
-  it('returns null for multiplayer games', () => {
+  it('keeps multiplayer games and marks them as multiplayer', () => {
     const game = makeRawgGame({
       tags: [{ name: 'Co-op' }],
     });
-    expect(mapRawgGame(game)).toBeNull();
+    expect(mapRawgGame(game)).toEqual({
+      rawgId: 1,
+      name: 'Game',
+      cover: 'https://example.com/cover.jpg',
+      metacritic: 90,
+      rating: 4.5,
+      playtime: 20,
+      genres: ['RPG'],
+      platforms: ['PC'],
+      tags: ['Co-op'],
+      isMultiplayer: true,
+      isManual: false,
+    });
   });
 
   it('maps missing optional fields to null and empty arrays', () => {
