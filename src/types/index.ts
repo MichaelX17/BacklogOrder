@@ -44,6 +44,7 @@ export interface GameList {
 }
 
 export interface ListEntry {
+  listId: string;
   game: Game;
   status: GameStatus;
   addedAt: number;

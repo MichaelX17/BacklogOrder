@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { gamesRepo, listGamesRepo, listsRepo } from '@/db/repositories';
 import { mapRawgGame } from '@/services/rawg/mapper';
 import type { RawgGame } from '@/services/rawg/types';
+import { useGamesStore } from '@/stores/gamesStore';
+import { useListsStore } from '@/stores/listsStore';
 import type { GameList, GameStatus } from '@/types';
 import { GAME_STATUSES } from '@/types';
 
@@ -31,11 +32,17 @@ interface AddToListModalContentProps {
 }
 
 function AddToListModalContent({ game, onClose, onAdded }: AddToListModalContentProps) {
-  const [lists] = useState<GameList[]>(() => listsRepo.getAll());
+  const lists = useListsStore((state) => state.lists);
+  const createList = useListsStore((state) => state.createList);
+  const addGameToList = useGamesStore((state) => state.addGameToList);
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [newListName, setNewListName] = useState('');
   const [status, setStatus] = useState<GameStatus>('Backlog');
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    useListsStore.getState().loadLists();
+  }, []);
 
   function handleAdd() {
     const mapped = mapRawgGame(game);
@@ -51,13 +58,11 @@ function AddToListModalContent({ game, onClose, onAdded }: AddToListModalContent
         setError('Pick a list or enter a new list name.');
         return;
       }
-      const created = listsRepo.create(trimmed);
+      const created = createList(trimmed);
       listId = created.id;
     }
 
-    const existing = gamesRepo.findByRawgId(game.id);
-    const storedGame = existing ?? gamesRepo.create(mapped);
-    listGamesRepo.addGameToList(listId, storedGame.id, status);
+    addGameToList(listId, mapped, status);
     onAdded();
   }
 
@@ -74,7 +79,7 @@ function AddToListModalContent({ game, onClose, onAdded }: AddToListModalContent
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chipRow}
         >
-          {lists.map((list) => (
+          {lists.map((list: GameList) => (
             <Pressable
               key={list.id}
               style={[styles.chip, selectedListId === list.id && styles.chipSelected]}

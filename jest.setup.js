@@ -31,3 +31,26 @@ jest.mock(
   }),
   { virtual: true },
 );
+
+jest.mock('expo-sqlite', () => {
+  const executionResult = {
+    changes: 0,
+    lastInsertRowId: 0,
+    getAllSync: () => [],
+    getFirstSync: () => undefined,
+  };
+  const statement = {
+    executeSync: () => executionResult,
+    executeForRawResultSync: () => ({
+      getAllSync: () => [],
+    }),
+  };
+  return {
+    openDatabaseSync: jest.fn(() => ({
+      prepareSync: () => statement,
+      runSync: jest.fn(),
+      execSync: jest.fn(),
+      closeSync: jest.fn(),
+    })),
+  };
+});

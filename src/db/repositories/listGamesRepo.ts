@@ -43,6 +43,28 @@ export const listGamesRepo = {
       .all();
 
     return rows.map((row) => ({
+      listId,
+      game: mapGameRow(row.game),
+      status: toGameStatus(row.status),
+      addedAt: row.addedAt,
+    }));
+  },
+
+  getAllEntries(): ListEntry[] {
+    const rows = db
+      .select({
+        listId: listGamesTable.listId,
+        game: gamesTable,
+        status: listGamesTable.status,
+        addedAt: listGamesTable.addedAt,
+      })
+      .from(listGamesTable)
+      .innerJoin(gamesTable, eq(listGamesTable.gameId, gamesTable.id))
+      .orderBy(asc(listGamesTable.addedAt))
+      .all();
+
+    return rows.map((row) => ({
+      listId: row.listId,
       game: mapGameRow(row.game),
       status: toGameStatus(row.status),
       addedAt: row.addedAt,

@@ -54,6 +54,10 @@ export const gamesRepo = {
       .map((row) => mapGameRow(row));
   },
 
+  updateFranchise(id: string, franchise: string | null, franchiseOrder: number | null): void {
+    db.update(gamesTable).set({ franchise, franchiseOrder }).where(eq(gamesTable.id, id)).run();
+  },
+
   remove(id: string): void {
     db.delete(gamesTable).where(eq(gamesTable.id, id)).run();
   },
