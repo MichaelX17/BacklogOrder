@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import EmptyState from '@/components/EmptyState';
 import StatusBadge from '@/components/StatusBadge';
 import { gamesRepo } from '@/db/repositories';
+import { HUD_THEME, rgba } from '@/theme/hudTheme';
 import { useGamesStore } from '@/stores/gamesStore';
 import { toScoredGame } from '@/utils/sorting';
 import { GAME_STATUSES } from '@/types';
@@ -161,7 +162,7 @@ function GameDetailContent({ game, listId }: GameDetailContentProps) {
               setError(null);
             }}
             placeholder="Franchise name (optional)"
-            placeholderTextColor="#999999"
+            placeholderTextColor={HUD_THEME.muted}
           />
           <TextInput
             style={styles.input}
@@ -171,7 +172,7 @@ function GameDetailContent({ game, listId }: GameDetailContentProps) {
               setError(null);
             }}
             placeholder="Order in saga (optional)"
-            placeholderTextColor="#999999"
+            placeholderTextColor={HUD_THEME.muted}
             keyboardType="number-pad"
           />
           {error !== null ? <Text style={styles.error}>{error}</Text> : null}
@@ -218,7 +219,7 @@ function GameDetailContent({ game, listId }: GameDetailContentProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: HUD_THEME.bgFrom,
   },
   content: {
     padding: 16,
@@ -231,11 +232,13 @@ const styles = StyleSheet.create({
   cover: {
     width: 96,
     height: 128,
-    borderRadius: 8,
-    backgroundColor: '#eeeeee',
+    borderRadius: 12,
+    backgroundColor: '#2b1f38',
+    borderWidth: 1,
+    borderColor: rgba(HUD_THEME.primary, 0.4),
   },
   coverPlaceholder: {
-    backgroundColor: '#dddddd',
+    backgroundColor: '#2d2e3d',
   },
   headerInfo: {
     flex: 1,
@@ -243,84 +246,87 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111111',
+    fontWeight: '800',
+    color: HUD_THEME.text,
   },
   scoreBadge: {
-    marginTop: 8,
+    marginTop: 10,
     alignSelf: 'flex-start',
-    backgroundColor: '#111111',
-    borderRadius: 8,
+    backgroundColor: rgba(HUD_THEME.primary, 0.12),
+    borderColor: rgba(HUD_THEME.primary, 0.6),
+    borderWidth: 1,
+    borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
   scoreText: {
-    color: '#ffffff',
+    color: HUD_THEME.primary,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '800',
   },
   noScore: {
     marginTop: 8,
     fontSize: 14,
-    color: '#999999',
+    color: HUD_THEME.muted,
   },
   warningBox: {
-    backgroundColor: '#fff3e0',
-    borderLeftWidth: 3,
-    borderLeftColor: '#f57c00',
-    borderRadius: 6,
+    backgroundColor: rgba(HUD_THEME.playing, 0.08),
+    borderRadius: 12,
     padding: 12,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: rgba(HUD_THEME.playing, 0.45),
   },
   warningText: {
     fontSize: 13,
-    color: '#e65100',
+    color: '#ffcf7b',
     lineHeight: 19,
   },
   section: {
-    backgroundColor: '#ffffff',
-    borderRadius: 10,
+    backgroundColor: rgba(HUD_THEME.secondary, 0.05),
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#eeeeee',
+    borderColor: rgba(HUD_THEME.secondary, 0.18),
     padding: 16,
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#111111',
-    marginBottom: 12,
+    fontSize: 18,
+    fontWeight: '800',
+    color: HUD_THEME.text,
+    marginBottom: 10,
+    letterSpacing: 1,
   },
   metaRow: {
     fontSize: 14,
-    color: '#333333',
+    color: HUD_THEME.text,
     marginBottom: 6,
   },
   input: {
+    backgroundColor: rgba(HUD_THEME.secondary, 0.05),
+    borderColor: rgba(HUD_THEME.secondary, 0.22),
     borderWidth: 1,
-    borderColor: '#cccccc',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: '#111111',
-    backgroundColor: '#ffffff',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     marginBottom: 10,
+    color: HUD_THEME.text,
   },
   error: {
     marginTop: 4,
     fontSize: 13,
-    color: '#d32f2f',
+    color: '#ff8b8b',
   },
   saveButton: {
-    backgroundColor: '#111111',
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: HUD_THEME.secondary,
+    borderRadius: 10,
+    paddingVertical: 12,
     alignItems: 'center',
   },
   saveButtonText: {
-    color: '#ffffff',
+    color: '#0d1b1e',
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '800',
   },
   statusRow: {
     marginBottom: 12,
@@ -333,33 +339,34 @@ const styles = StyleSheet.create({
   },
   chip: {
     borderWidth: 1,
-    borderColor: '#cccccc',
+    borderColor: rgba(HUD_THEME.secondary, 0.2),
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 8,
+    backgroundColor: rgba(HUD_THEME.secondary, 0.04),
   },
   chipSelected: {
-    backgroundColor: '#111111',
-    borderColor: '#111111',
+    backgroundColor: HUD_THEME.primary,
+    borderColor: HUD_THEME.primary,
   },
   chipText: {
     fontSize: 14,
-    color: '#111111',
+    color: HUD_THEME.text,
+    fontWeight: '700',
   },
   chipTextSelected: {
-    color: '#ffffff',
+    color: '#120912',
   },
   removeButton: {
-    borderWidth: 1,
-    borderColor: '#d32f2f',
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: '#ff4f6d',
+    borderRadius: 10,
+    paddingVertical: 12,
     alignItems: 'center',
   },
   removeButtonText: {
-    color: '#d32f2f',
+    color: '#fff6f8',
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '800',
   },
   buttonPressed: {
     opacity: 0.7,

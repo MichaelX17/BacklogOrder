@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import GameCard from '@/components/GameCard';
+import { HUD_THEME } from '@/theme/hudTheme';
 import type { ListEntry } from '@/types';
 import type { FranchiseGroup as FranchiseGroupData, ScoredGame } from '@/utils/sorting';
 
@@ -69,21 +70,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 4,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#111111',
+    fontWeight: '800',
+    color: HUD_THEME.text,
+    letterSpacing: 1,
   },
   chevron: {
     fontSize: 18,
-    color: '#666666',
+    color: HUD_THEME.secondary,
   },
   warningWrap: {
-    marginTop: 4,
+    marginTop: 6,
+    paddingHorizontal: 4,
   },
   headerWarning: {
     fontSize: 12,
-    color: '#f57c00',
+    color: '#ffb455',
   },
 });

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { HUD_THEME, rgba } from '@/theme/hudTheme';
 import { GAME_STATUSES, type GameStatus } from '@/types';
 import { DEFAULT_FILTERS, type FilterState } from '@/utils/filters';
 
@@ -66,7 +67,7 @@ export default function FilterSheet({ visible, filters, onClose, onApply }: Filt
                 value={draft.name}
                 onChangeText={(text) => setDraft((current) => ({ ...current, name: text }))}
                 placeholder="Search by title"
-                placeholderTextColor="#999999"
+                placeholderTextColor={HUD_THEME.muted}
               />
             </View>
 
@@ -181,12 +182,14 @@ const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
   },
   sheet: {
-    backgroundColor: '#ffffff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: HUD_THEME.bgFrom,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    borderWidth: 1,
+    borderColor: rgba(HUD_THEME.secondary, 0.2),
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 24,
@@ -197,14 +200,15 @@ const styles = StyleSheet.create({
     width: 52,
     height: 5,
     borderRadius: 999,
-    backgroundColor: '#dfe3e8',
+    backgroundColor: rgba(HUD_THEME.secondary, 0.5),
     marginBottom: 12,
   },
   title: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#111111',
+    fontWeight: '800',
+    color: HUD_THEME.text,
     marginBottom: 12,
+    letterSpacing: 1,
   },
   content: {
     paddingBottom: 12,
@@ -217,19 +221,20 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#333333',
+    fontWeight: '700',
+    color: HUD_THEME.muted,
     marginBottom: 8,
+    letterSpacing: 1,
   },
   input: {
-    backgroundColor: '#f7f7f7',
-    borderColor: '#d9d9d9',
+    backgroundColor: rgba(HUD_THEME.secondary, 0.06),
+    borderColor: rgba(HUD_THEME.secondary, 0.22),
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
-    color: '#111111',
+    color: HUD_THEME.text,
   },
   row: {
     flexDirection: 'row',
@@ -245,22 +250,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: '#f3f3f3',
+    backgroundColor: rgba(HUD_THEME.secondary, 0.05),
     borderWidth: 1,
-    borderColor: '#dddddd',
+    borderColor: rgba(HUD_THEME.secondary, 0.2),
     marginBottom: 8,
   },
   chipSelected: {
-    backgroundColor: '#111111',
-    borderColor: '#111111',
+    backgroundColor: HUD_THEME.primary,
+    borderColor: HUD_THEME.primary,
   },
   chipText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#111111',
+    fontWeight: '700',
+    color: HUD_THEME.text,
+    letterSpacing: 0.8,
   },
   chipTextSelected: {
-    color: '#ffffff',
+    color: '#120912',
   },
   actions: {
     flexDirection: 'row',
@@ -269,26 +275,32 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     flex: 1,
-    backgroundColor: '#111111',
+    backgroundColor: HUD_THEME.primary,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
+    shadowColor: HUD_THEME.primary,
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 0 },
   },
   primaryButtonText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#ffffff',
+    color: '#120912',
   },
   secondaryButton: {
     flex: 1,
-    backgroundColor: '#f2f2f2',
+    backgroundColor: rgba(HUD_THEME.secondary, 0.09),
     borderRadius: 10,
+    borderWidth: 1,
+    borderColor: rgba(HUD_THEME.secondary, 0.2),
     paddingVertical: 12,
     alignItems: 'center',
   },
   secondaryButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#111111',
+    color: HUD_THEME.secondary,
   },
 });

@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { checkApiKey } from '@/services/rawg/client';
 import { rawgErrorMessage } from '@/services/rawg/errors';
 import { setApiKey } from '@/services/secureStore';
+import { HUD_THEME, rgba } from '@/theme/hudTheme';
 
 export default function OnboardingScreen() {
   const [apiKey, setApiKeyState] = useState('');
@@ -50,6 +51,7 @@ export default function OnboardingScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.glow} pointerEvents="none" />
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -63,7 +65,7 @@ export default function OnboardingScreen() {
             value={apiKey}
             onChangeText={setApiKeyState}
             placeholder="Paste your RAWG API key"
-            placeholderTextColor="#999999"
+            placeholderTextColor={HUD_THEME.muted}
             autoCapitalize="none"
             autoCorrect={false}
             autoComplete="off"
@@ -79,7 +81,7 @@ export default function OnboardingScreen() {
             disabled={isValidating}
           >
             {isValidating ? (
-              <ActivityIndicator color="#ffffff" />
+              <ActivityIndicator color={HUD_THEME.text} />
             ) : (
               <Text style={styles.buttonText}>Validate & Continue</Text>
             )}
@@ -97,7 +99,12 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: HUD_THEME.bgFrom,
+  },
+  glow: {
+    position: 'absolute',
+    inset: 0,
+    backgroundColor: rgba(HUD_THEME.primary, 0.13),
   },
   flex: {
     flex: 1,
@@ -109,64 +116,72 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontWeight: 'bold',
-    color: '#111111',
+    fontWeight: '800',
+    color: HUD_THEME.text,
     textAlign: 'center',
+    letterSpacing: 2,
   },
   subtitle: {
     marginTop: 8,
     marginBottom: 32,
     fontSize: 16,
-    color: '#666666',
+    color: HUD_THEME.muted,
     textAlign: 'center',
   },
   label: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#111111',
+    fontWeight: '700',
+    color: HUD_THEME.text,
     marginBottom: 8,
+    letterSpacing: 1.2,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#cccccc',
-    borderRadius: 8,
+    borderColor: rgba(HUD_THEME.secondary, 0.35),
+    borderRadius: 12,
     padding: 12,
     fontSize: 16,
-    color: '#111111',
-    backgroundColor: '#ffffff',
+    color: HUD_THEME.text,
+    backgroundColor: rgba(HUD_THEME.secondary, 0.08),
   },
   error: {
     marginTop: 8,
     fontSize: 14,
-    color: '#d32f2f',
+    color: '#ff8b8b',
   },
   button: {
     marginTop: 24,
-    backgroundColor: '#111111',
-    borderRadius: 8,
+    backgroundColor: HUD_THEME.primary,
+    borderRadius: 12,
     padding: 16,
     alignItems: 'center',
+    shadowColor: HUD_THEME.primary,
+    shadowOpacity: 0.4,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 0 },
   },
   buttonDisabled: {
     opacity: 0.6,
   },
   buttonText: {
-    color: '#ffffff',
+    color: '#120912',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '800',
+    letterSpacing: 1,
   },
   link: {
     marginTop: 16,
     alignItems: 'center',
   },
   linkText: {
-    color: '#1976d2',
+    color: HUD_THEME.secondary,
     fontSize: 14,
+    fontWeight: '600',
   },
   attribution: {
     marginTop: 32,
     fontSize: 12,
-    color: '#999999',
+    color: HUD_THEME.muted,
     textAlign: 'center',
   },
 });

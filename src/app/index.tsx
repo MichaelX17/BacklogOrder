@@ -16,6 +16,7 @@ import EmptyState from '@/components/EmptyState';
 import { getApiKey } from '@/services/secureStore';
 import { useGamesStore } from '@/stores/gamesStore';
 import { useListsStore } from '@/stores/listsStore';
+import { HUD_THEME, rgba } from '@/theme/hudTheme';
 import { computeScore } from '@/utils/score';
 import { findRecommendation } from '@/utils/recommendation';
 import type { GameList } from '@/types';
@@ -105,13 +106,15 @@ export default function HomeScreen() {
   if (!isListsLoaded) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#111111" />
+        <ActivityIndicator size="large" color={HUD_THEME.primary} />
       </View>
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.gridOverlay} pointerEvents="none" />
+      <View style={styles.scanlines} pointerEvents="none" />
       <FlatList
         data={lists}
         keyExtractor={(item) => item.id}
@@ -161,7 +164,7 @@ export default function HomeScreen() {
                 value={newListName}
                 onChangeText={setNewListName}
                 placeholder="New list name"
-                placeholderTextColor="#999999"
+                placeholderTextColor={HUD_THEME.muted}
                 onSubmitEditing={handleCreateList}
                 returnKeyType="done"
               />
@@ -189,33 +192,53 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: HUD_THEME.bgFrom,
+  },
+  gridOverlay: {
+    position: 'absolute',
+    inset: 0,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    opacity: 0.2,
+  },
+  scanlines: {
+    position: 'absolute',
+    inset: 0,
+    backgroundColor: rgba(HUD_THEME.primary, 0.04),
   },
   loading: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: HUD_THEME.bgFrom,
   },
   content: {
     padding: 16,
     flexGrow: 1,
   },
   pickCard: {
-    backgroundColor: '#111111',
-    borderRadius: 12,
+    backgroundColor: HUD_THEME.panel,
+    borderWidth: 1,
+    borderColor: rgba(HUD_THEME.secondary, 0.28),
+    borderRadius: 16,
     padding: 16,
     marginBottom: 16,
+    shadowColor: HUD_THEME.shadow,
+    shadowOpacity: 0.5,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 0 },
   },
   pickContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   pickCover: {
-    width: 72,
-    height: 96,
-    borderRadius: 8,
+    width: 76,
+    height: 100,
+    borderRadius: 10,
     backgroundColor: '#2c2c2c',
+    borderWidth: 1,
+    borderColor: rgba(HUD_THEME.primary, 0.35),
   },
   pickCoverPlaceholder: {
     backgroundColor: '#3a3a3a',
@@ -226,20 +249,20 @@ const styles = StyleSheet.create({
   },
   pickLabel: {
     fontSize: 11,
-    fontWeight: 'bold',
-    color: '#aaaaaa',
-    letterSpacing: 1,
+    fontWeight: '700',
+    color: HUD_THEME.muted,
+    letterSpacing: 2,
   },
   pickName: {
     marginTop: 4,
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#ffffff',
+    fontWeight: '800',
+    color: HUD_THEME.text,
   },
   pickMeta: {
     marginTop: 4,
     fontSize: 14,
-    color: '#cccccc',
+    color: HUD_THEME.muted,
   },
   actionRow: {
     flexDirection: 'row',
@@ -248,87 +271,104 @@ const styles = StyleSheet.create({
   },
   primaryAction: {
     flex: 1,
-    backgroundColor: '#ffffff',
-    borderRadius: 8,
-    paddingVertical: 10,
+    backgroundColor: HUD_THEME.primary,
+    borderRadius: 10,
+    paddingVertical: 12,
     alignItems: 'center',
+    shadowColor: HUD_THEME.primary,
+    shadowOpacity: 0.45,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 0 },
   },
   primaryActionText: {
-    color: '#111111',
-    fontWeight: '700',
+    color: '#120912',
+    fontWeight: '800',
+    letterSpacing: 0.8,
   },
   secondaryAction: {
     flex: 1,
+    backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#ffffff',
-    borderRadius: 8,
-    paddingVertical: 10,
+    borderColor: rgba(HUD_THEME.secondary, 0.6),
+    borderRadius: 10,
+    paddingVertical: 12,
     alignItems: 'center',
   },
   secondaryActionText: {
-    color: '#ffffff',
-    fontWeight: '600',
+    color: HUD_THEME.secondary,
+    fontWeight: '700',
+    letterSpacing: 0.8,
   },
   createRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 20,
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 18,
   },
   createInput: {
     flex: 1,
+    backgroundColor: rgba(HUD_THEME.secondary, 0.08),
     borderWidth: 1,
-    borderColor: '#cccccc',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: '#111111',
-    backgroundColor: '#ffffff',
+    borderColor: rgba(HUD_THEME.secondary, 0.25),
+    borderRadius: 10,
+    color: HUD_THEME.text,
+    fontSize: 15,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
   createButton: {
-    backgroundColor: '#111111',
-    borderRadius: 8,
-    paddingHorizontal: 20,
-    justifyContent: 'center',
+    backgroundColor: rgba(HUD_THEME.secondary, 0.12),
+    borderWidth: 1,
+    borderColor: rgba(HUD_THEME.secondary, 0.35),
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 10,
   },
   createButtonText: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#111111',
-    marginBottom: 8,
+    color: HUD_THEME.secondary,
+    fontWeight: '700',
+    letterSpacing: 1,
   },
   listRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderRadius: 10,
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: rgba(HUD_THEME.secondary, 0.06),
     borderWidth: 1,
-    borderColor: '#eeeeee',
-    padding: 16,
+    borderColor: rgba(HUD_THEME.secondary, 0.12),
     marginBottom: 10,
   },
   listRowPressed: {
-    opacity: 0.7,
+    opacity: 0.8,
   },
   listInfo: {
     flex: 1,
   },
   listName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111111',
+    fontSize: 18,
+    fontWeight: '700',
+    color: HUD_THEME.text,
   },
   listMeta: {
-    marginTop: 2,
-    fontSize: 13,
-    color: '#666666',
+    marginTop: 4,
+    fontSize: 12,
+    color: HUD_THEME.muted,
+    letterSpacing: 0.75,
   },
   chevron: {
-    fontSize: 24,
-    color: '#999999',
+    fontSize: 26,
+    color: HUD_THEME.secondary,
+  },
+  sectionTitle: {
+    marginTop: 10,
+    marginBottom: 12,
+    color: HUD_THEME.muted,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
 });

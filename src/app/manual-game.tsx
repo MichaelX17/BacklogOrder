@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import EmptyState from '@/components/EmptyState';
+import { HUD_THEME, rgba } from '@/theme/hudTheme';
 import { useGamesStore } from '@/stores/gamesStore';
 import { parseCsv } from '@/utils/parseCsv';
 import type { NewGame } from '@/types';
@@ -137,7 +138,7 @@ export default function ManualGameScreen() {
             setFieldErrors((prev) => ({ ...prev, name: undefined }));
           }}
           placeholder="Game name"
-          placeholderTextColor="#999999"
+          placeholderTextColor={HUD_THEME.muted}
         />
         {fieldErrors.name !== undefined ? (
           <Text style={styles.error}>{fieldErrors.name}</Text>
@@ -149,7 +150,7 @@ export default function ManualGameScreen() {
           value={cover}
           onChangeText={setCover}
           placeholder="https://…"
-          placeholderTextColor="#999999"
+          placeholderTextColor={HUD_THEME.muted}
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="url"
@@ -164,7 +165,7 @@ export default function ManualGameScreen() {
             setFieldErrors((prev) => ({ ...prev, metacritic: undefined }));
           }}
           placeholder="e.g. 92"
-          placeholderTextColor="#999999"
+          placeholderTextColor={HUD_THEME.muted}
           keyboardType="number-pad"
         />
         {fieldErrors.metacritic !== undefined ? (
@@ -180,7 +181,7 @@ export default function ManualGameScreen() {
             setFieldErrors((prev) => ({ ...prev, rating: undefined }));
           }}
           placeholder="e.g. 4.5"
-          placeholderTextColor="#999999"
+          placeholderTextColor={HUD_THEME.muted}
           keyboardType="decimal-pad"
         />
         {fieldErrors.rating !== undefined ? (
@@ -196,7 +197,7 @@ export default function ManualGameScreen() {
             setFieldErrors((prev) => ({ ...prev, playtime: undefined }));
           }}
           placeholder="e.g. 30"
-          placeholderTextColor="#999999"
+          placeholderTextColor={HUD_THEME.muted}
           keyboardType="decimal-pad"
         />
         {fieldErrors.playtime !== undefined ? (
@@ -209,7 +210,7 @@ export default function ManualGameScreen() {
           value={genres}
           onChangeText={setGenres}
           placeholder="RPG, Action"
-          placeholderTextColor="#999999"
+          placeholderTextColor={HUD_THEME.muted}
         />
 
         <Text style={styles.label}>Platforms, comma-separated (optional)</Text>
@@ -218,7 +219,7 @@ export default function ManualGameScreen() {
           value={platforms}
           onChangeText={setPlatforms}
           placeholder="PC, PlayStation 5"
-          placeholderTextColor="#999999"
+          placeholderTextColor={HUD_THEME.muted}
         />
 
         <Text style={styles.label}>Franchise (optional)</Text>
@@ -227,7 +228,7 @@ export default function ManualGameScreen() {
           value={franchise}
           onChangeText={setFranchise}
           placeholder="e.g. Hades"
-          placeholderTextColor="#999999"
+          placeholderTextColor={HUD_THEME.muted}
         />
 
         <Text style={styles.label}>Franchise order (optional)</Text>
@@ -239,7 +240,7 @@ export default function ManualGameScreen() {
             setFieldErrors((prev) => ({ ...prev, franchiseOrder: undefined }));
           }}
           placeholder="e.g. 2"
-          placeholderTextColor="#999999"
+          placeholderTextColor={HUD_THEME.muted}
           keyboardType="number-pad"
         />
         {fieldErrors.franchiseOrder !== undefined ? (
@@ -262,46 +263,51 @@ export default function ManualGameScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: HUD_THEME.bgFrom,
   },
   content: {
     padding: 16,
   },
   label: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#111111',
+    fontWeight: '700',
+    color: HUD_THEME.text,
     marginBottom: 6,
     marginTop: 10,
+    letterSpacing: 0.8,
   },
   required: {
-    color: '#d32f2f',
+    color: '#ff8b8b',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#cccccc',
-    borderRadius: 8,
+    borderColor: rgba(HUD_THEME.secondary, 0.25),
+    borderRadius: 10,
     padding: 12,
     fontSize: 16,
-    color: '#111111',
-    backgroundColor: '#ffffff',
+    color: HUD_THEME.text,
+    backgroundColor: rgba(HUD_THEME.secondary, 0.06),
   },
   error: {
     marginTop: 4,
     fontSize: 13,
-    color: '#d32f2f',
+    color: '#ff8b8b',
   },
   createButton: {
     marginTop: 24,
-    backgroundColor: '#111111',
-    borderRadius: 8,
+    backgroundColor: HUD_THEME.primary,
+    borderRadius: 10,
     padding: 16,
     alignItems: 'center',
+    shadowColor: HUD_THEME.primary,
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 0 },
   },
   createButtonText: {
-    color: '#ffffff',
+    color: '#120912',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '800',
   },
   buttonPressed: {
     opacity: 0.7,

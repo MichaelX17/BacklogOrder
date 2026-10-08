@@ -1,6 +1,7 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import StatusBadge from '@/components/StatusBadge';
+import { HUD_THEME, rgba } from '@/theme/hudTheme';
 import type { GameStatus } from '@/types';
 import type { ScoredGame } from '@/utils/sorting';
 
@@ -63,24 +64,30 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderRadius: 10,
+    backgroundColor: rgba(HUD_THEME.bgFrom, 0.75),
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#eeeeee',
+    borderColor: rgba(HUD_THEME.secondary, 0.22),
     padding: 10,
     marginBottom: 10,
+    shadowColor: HUD_THEME.shadow,
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 0 },
   },
   cardPressed: {
-    opacity: 0.7,
+    opacity: 0.8,
   },
   cover: {
-    width: 56,
-    height: 72,
-    borderRadius: 6,
-    backgroundColor: '#eeeeee',
+    width: 58,
+    height: 74,
+    borderRadius: 8,
+    backgroundColor: '#221b2f',
+    borderWidth: 1,
+    borderColor: rgba(HUD_THEME.primary, 0.35),
   },
   coverPlaceholder: {
-    backgroundColor: '#dddddd',
+    backgroundColor: '#2d2e3d',
   },
   info: {
     flex: 1,
@@ -88,29 +95,31 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#111111',
+    fontWeight: '700',
+    color: HUD_THEME.text,
   },
   meta: {
     marginTop: 3,
     fontSize: 12,
-    color: '#666666',
+    color: HUD_THEME.muted,
   },
   badgeRow: {
-    marginTop: 6,
+    marginTop: 8,
   },
   scoreBadge: {
     marginLeft: 10,
-    backgroundColor: '#111111',
-    borderRadius: 8,
+    backgroundColor: rgba(HUD_THEME.primary, 0.18),
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: rgba(HUD_THEME.primary, 0.5),
     paddingHorizontal: 10,
     paddingVertical: 6,
-    minWidth: 52,
+    minWidth: 56,
     alignItems: 'center',
   },
   scoreText: {
-    color: '#ffffff',
+    color: HUD_THEME.primary,
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '800',
   },
 });

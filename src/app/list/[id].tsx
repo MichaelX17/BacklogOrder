@@ -8,6 +8,7 @@ import FilterSheet from '@/components/FilterSheet';
 import FranchiseGroup from '@/components/FranchiseGroup';
 import { useGamesStore } from '@/stores/gamesStore';
 import { useListsStore } from '@/stores/listsStore';
+import { HUD_THEME, rgba } from '@/theme/hudTheme';
 import { applyFilters, DEFAULT_FILTERS, isFilterActive, type FilterState } from '@/utils/filters';
 import {
   sortGames,
@@ -67,7 +68,7 @@ export default function ListDetailScreen() {
   if (!isEntriesLoaded) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#111111" />
+        <ActivityIndicator size="large" color={HUD_THEME.secondary} />
       </View>
     );
   }
@@ -160,13 +161,13 @@ export default function ListDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: HUD_THEME.bgFrom,
   },
   loading: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: HUD_THEME.bgFrom,
   },
   actions: {
     flexDirection: 'row',
@@ -176,28 +177,34 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-    backgroundColor: '#111111',
-    borderRadius: 8,
+    backgroundColor: HUD_THEME.primary,
+    borderRadius: 10,
     padding: 12,
     alignItems: 'center',
+    shadowColor: HUD_THEME.primary,
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 0 },
   },
   actionButtonSecondary: {
-    backgroundColor: '#ffffff',
+    backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#cccccc',
+    borderColor: rgba(HUD_THEME.secondary, 0.6),
   },
   actionButtonPressed: {
     opacity: 0.7,
   },
   actionButtonText: {
-    color: '#ffffff',
+    color: '#120912',
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '800',
+    letterSpacing: 0.8,
   },
   actionButtonSecondaryText: {
-    color: '#111111',
+    color: HUD_THEME.secondary,
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 0.8,
   },
   filterRow: {
     flexDirection: 'row',
@@ -207,29 +214,29 @@ const styles = StyleSheet.create({
   },
   filterButton: {
     flex: 1,
-    backgroundColor: '#f3f3f3',
-    borderRadius: 8,
+    backgroundColor: rgba(HUD_THEME.secondary, 0.08),
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#d9d9d9',
+    borderColor: rgba(HUD_THEME.secondary, 0.25),
     padding: 12,
     alignItems: 'center',
   },
   filterButtonText: {
-    color: '#111111',
+    color: HUD_THEME.text,
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   clearButton: {
-    backgroundColor: '#ffffff',
+    backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#cccccc',
-    borderRadius: 8,
+    borderColor: rgba(HUD_THEME.secondary, 0.35),
+    borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 12,
     alignItems: 'center',
   },
   clearButtonText: {
-    color: '#111111',
+    color: HUD_THEME.secondary,
     fontSize: 15,
     fontWeight: '600',
   },
