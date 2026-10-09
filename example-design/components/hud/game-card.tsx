@@ -2,15 +2,21 @@ import Image from 'next/image'
 import { Clock, Star } from 'lucide-react'
 import type { Game } from '@/lib/games'
 import { cn } from '@/lib/utils'
+import { ScoreTag } from './score-tag'
 import { StatusBadge } from './status-badge'
 
 type GameCardProps = {
   game: Game
+  score: number | null
   selected: boolean
   onSelect: () => void
+  rank?: number
+  sagaOrder?: number | null
 }
 
-export function GameCard({ game, selected, onSelect }: GameCardProps) {
+export function GameCard({ game, score, selected, onSelect, rank, sagaOrder }: GameCardProps) {
+  const dimmed = game.status === 'dropped' || game.status === 'completed'
+
   return (
     <li className={cn('transition-[filter]', selected && 'glow-primary')}>
       <button
@@ -30,45 +36,67 @@ export function GameCard({ game, selected, onSelect }: GameCardProps) {
 
           <div className={cn('bevel bevel-sm relative shrink-0 p-px', selected ? 'bg-hud-primary' : 'bg-hud-secondary/70')}>
             <div className="bevel bevel-sm relative size-14 overflow-hidden bg-black">
-              <Image src={game.cover} alt={`${game.title} cover art`} fill sizes="56px" className="object-cover" />
+              <Image
+                src={game.cover || '/placeholder.svg'}
+                alt={`${game.name} cover art`}
+                fill
+                sizes="56px"
+                className={cn('object-cover', dimmed && 'opacity-60 grayscale-[40%]')}
+              />
+              {rank !== undefined && (
+                <span className="absolute bottom-0 left-0 bg-hud-primary px-1 font-display text-[9px] font-black tabular-nums leading-tight text-black">
+                  <span className="sr-only">Rank </span>
+                  {rank.toString().padStart(2, '0')}
+                </span>
+              )}
+              {sagaOrder !== undefined && (
+                <span className="absolute bottom-0 left-0 bg-hud-secondary px-1 font-display text-[9px] font-black tabular-nums leading-tight text-black">
+                  <span className="sr-only">Saga entry </span>
+                  {sagaOrder === null ? '?' : `#${sagaOrder}`}
+                </span>
+              )}
             </div>
           </div>
 
           <div className="relative min-w-0 flex-1">
-            <h3 className="truncate text-[15px] font-bold leading-tight text-white">{game.title}</h3>
+            <h3 className={cn('truncate text-[15px] font-bold leading-tight', dimmed ? 'text-white/70' : 'text-white')}>
+              {game.name}
+            </h3>
             <div className="mt-0.5 flex items-center gap-2.5 text-[11px] font-medium text-hud-muted">
               <span className="inline-flex items-center gap-1">
                 <Clock className="size-3" aria-hidden="true" />
-                {game.playtimeHours}h
+                {game.playtime}h
               </span>
-              <span className="inline-flex items-center gap-1">
-                <Star className="size-3" aria-hidden="true" />
-                <span className="sr-only">Metacritic</span>
-                MC {game.metacritic}
-              </span>
+              <RatingSource game={game} />
             </div>
             <StatusBadge status={game.status} className="mt-1.5" />
           </div>
 
-          <PriceTag price={game.price} highlighted={selected} />
+          <ScoreTag score={score} highlighted={selected} />
         </div>
       </button>
     </li>
   )
 }
 
-function PriceTag({ price, highlighted }: { price: number; highlighted: boolean }) {
-  return (
-    <div className={cn('relative shrink-0', highlighted ? 'glow-primary' : 'glow-secondary')}>
-      <div className={cn('bevel bevel-sm p-px', highlighted ? 'bg-hud-primary' : 'bg-hud-secondary/80')}>
-        <div className="bevel bevel-sm flex min-w-[58px] flex-col items-end bg-black/80 px-2 py-1">
-          <span className="font-display text-[7px] font-medium uppercase tracking-[0.2em] text-hud-muted">Price</span>
-          <span className={cn('font-display text-[13px] font-bold tabular-nums', highlighted ? 'text-hud-primary' : 'text-hud-secondary')}>
-            <span className="text-[9px] opacity-70">$</span>
-            {price.toFixed(2)}
-          </span>
-        </div>
-      </div>
-    </div>
-  )
+function RatingSource({ game }: { game: Game }) {
+  if (game.metacritic != null) {
+    return (
+      <span className="inline-flex items-center gap-1">
+        <Star className="size-3" aria-hidden="true" />
+        <span className="sr-only">Metacritic</span>
+        MC {game.metacritic}
+      </span>
+    )
+  }
+  if (game.rating != null) {
+    return (
+      <span className="inline-flex items-center gap-1">
+        <Star className="size-3" aria-hidden="true" />
+        <span className="sr-only">RAWG rating</span>
+        RAWG {game.rating.toFixed(1)}
+      </span>
+    )
+  }
+  return <span className="italic">No rating</span>
 }

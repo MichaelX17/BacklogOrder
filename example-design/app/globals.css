@@ -164,6 +164,8 @@
   --color-hud-muted: var(--hud-muted);
   --color-hud-playing: var(--hud-playing);
   --color-hud-backlog: var(--hud-backlog);
+  --color-hud-completed: var(--hud-completed);
+  --color-hud-dropped: var(--hud-dropped);
 }
 
 /* Theme variants: swap only these variables, layout stays identical */
@@ -178,6 +180,8 @@
   --hud-muted: #a79bbf;
   --hud-playing: #ffb020;
   --hud-backlog: #22e6ff;
+  --hud-completed: #6dffb0;
+  --hud-dropped: #8a7f9e;
 }
 
 .theme-emerald {
@@ -191,6 +195,8 @@
   --hud-muted: #93b8a8;
   --hud-playing: #ffc43d;
   --hud-backlog: #2df5d0;
+  --hud-completed: #8cff7a;
+  --hud-dropped: #6f8c80;
 }
 
 .theme-crimson {
@@ -204,6 +210,8 @@
   --hud-muted: #c4a29b;
   --hud-playing: #ffd23f;
   --hud-backlog: #3fd8ff;
+  --hud-completed: #9dff6a;
+  --hud-dropped: #8f7470;
 }
 
 @layer components {

@@ -1,51 +1,73 @@
-export type GameStatus = 'playing' | 'backlog'
+export type GameStatus = 'backlog' | 'playing' | 'completed' | 'dropped'
 
 export type Game = {
   id: string
-  title: string
+  name: string
   cover: string
-  playtimeHours: number
-  metacritic: number
+  metacritic: number | null
+  rating: number | null
+  playtime: number
+  franchise?: string
+  franchiseOrder?: number
   status: GameStatus
-  price: number
+}
+
+export const statusLabels: Record<GameStatus, string> = {
+  backlog: 'Backlog',
+  playing: 'Playing',
+  completed: 'Completed',
+  dropped: 'Dropped',
 }
 
 export const games: Game[] = [
   {
     id: 'metro-2033',
-    title: 'Metro 2033',
+    name: 'Metro 2033',
     cover: '/covers/metro-2033.png',
-    playtimeHours: 10,
     metacritic: 81,
-    status: 'playing',
-    price: 39.5,
+    rating: 4.0,
+    playtime: 10,
+    franchise: 'Metro',
+    franchiseOrder: 1,
+    status: 'completed',
+  },
+  {
+    id: 'metro-last-light',
+    name: 'Metro: Last Light',
+    cover: '/covers/metro-last-light.png',
+    metacritic: 82,
+    rating: 4.2,
+    playtime: 9,
+    franchise: 'Metro',
+    franchiseOrder: 2,
+    status: 'backlog',
   },
   {
     id: 'tormented-souls',
-    title: 'Tormented Souls',
+    name: 'Tormented Souls',
     cover: '/covers/tormented-souls.png',
-    playtimeHours: 8,
-    metacritic: 72,
-    status: 'backlog',
-    price: 19.0,
-  },
-  {
-    id: 'resident-evil-4',
-    title: 'Resident Evil 4 (2005)',
-    cover: '/covers/resident-evil-4.png',
-    playtimeHours: 15,
-    metacritic: 96,
-    status: 'backlog',
-    price: 16.6,
+    metacritic: null,
+    rating: 3.6,
+    playtime: 8,
+    status: 'dropped',
   },
   {
     id: 'devil-may-cry-5',
-    title: 'Devil May Cry 5',
+    name: 'Devil May Cry 5',
     cover: '/covers/devil-may-cry-5.png',
-    playtimeHours: 12,
     metacritic: 89,
+    rating: 4.4,
+    playtime: 12,
     status: 'playing',
-    price: 9.78,
+  },
+  {
+    id: 'resident-evil-4',
+    name: 'Resident Evil 4 (2005)',
+    cover: '/covers/resident-evil-4.png',
+    metacritic: 96,
+    rating: 4.6,
+    playtime: 15,
+    status: 'backlog',
   },
 ]
 
