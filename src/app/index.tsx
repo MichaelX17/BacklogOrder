@@ -12,11 +12,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import EmptyState from '@/components/EmptyState';
+import { EmptyState } from '@/components/EmptyState';
 import { getApiKey } from '@/services/secureStore';
 import { useGamesStore } from '@/stores/gamesStore';
 import { useListsStore } from '@/stores/listsStore';
-import { HUD_THEME, rgba } from '@/theme/hudTheme';
+import { hudThemes, withAlpha } from '@/theme/hudTheme';
 import { computeScore } from '@/utils/score';
 import { findRecommendation } from '@/utils/recommendation';
 import type { GameList } from '@/types';
@@ -106,7 +106,7 @@ export default function HomeScreen() {
   if (!isListsLoaded) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator size="large" color={HUD_THEME.primary} />
+        <ActivityIndicator size="large" color={hudThemes.violet.colors.primary} />
       </View>
     );
   }
@@ -164,7 +164,7 @@ export default function HomeScreen() {
                 value={newListName}
                 onChangeText={setNewListName}
                 placeholder="New list name"
-                placeholderTextColor={HUD_THEME.muted}
+                placeholderTextColor={hudThemes.violet.colors.muted}
                 onSubmitEditing={handleCreateList}
                 returnKeyType="done"
               />
@@ -192,7 +192,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: HUD_THEME.bgFrom,
+    backgroundColor: hudThemes.violet.colors.bgFrom,
   },
   gridOverlay: {
     position: 'absolute',
@@ -204,26 +204,26 @@ const styles = StyleSheet.create({
   scanlines: {
     position: 'absolute',
     inset: 0,
-    backgroundColor: rgba(HUD_THEME.primary, 0.04),
+    backgroundColor: withAlpha(hudThemes.violet.colors.primary, 0.04),
   },
   loading: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: HUD_THEME.bgFrom,
+    backgroundColor: hudThemes.violet.colors.bgFrom,
   },
   content: {
     padding: 16,
     flexGrow: 1,
   },
   pickCard: {
-    backgroundColor: HUD_THEME.panel,
+    backgroundColor: hudThemes.violet.colors.surface,
     borderWidth: 1,
-    borderColor: rgba(HUD_THEME.secondary, 0.28),
+    borderColor: withAlpha(hudThemes.violet.colors.secondary, 0.28),
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    shadowColor: HUD_THEME.shadow,
+    shadowColor: hudThemes.violet.colors.surface,
     shadowOpacity: 0.5,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 0 },
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#2c2c2c',
     borderWidth: 1,
-    borderColor: rgba(HUD_THEME.primary, 0.35),
+    borderColor: withAlpha(hudThemes.violet.colors.primary, 0.35),
   },
   pickCoverPlaceholder: {
     backgroundColor: '#3a3a3a',
@@ -250,19 +250,19 @@ const styles = StyleSheet.create({
   pickLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: HUD_THEME.muted,
+    color: hudThemes.violet.colors.muted,
     letterSpacing: 2,
   },
   pickName: {
     marginTop: 4,
     fontSize: 20,
     fontWeight: '800',
-    color: HUD_THEME.text,
+    color: hudThemes.violet.colors.text,
   },
   pickMeta: {
     marginTop: 4,
     fontSize: 14,
-    color: HUD_THEME.muted,
+    color: hudThemes.violet.colors.muted,
   },
   actionRow: {
     flexDirection: 'row',
@@ -271,11 +271,11 @@ const styles = StyleSheet.create({
   },
   primaryAction: {
     flex: 1,
-    backgroundColor: HUD_THEME.primary,
+    backgroundColor: hudThemes.violet.colors.primary,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
-    shadowColor: HUD_THEME.primary,
+    shadowColor: hudThemes.violet.colors.primary,
     shadowOpacity: 0.45,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 0 },
@@ -289,13 +289,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: rgba(HUD_THEME.secondary, 0.6),
+    borderColor: withAlpha(hudThemes.violet.colors.secondary, 0.6),
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
   },
   secondaryActionText: {
-    color: HUD_THEME.secondary,
+    color: hudThemes.violet.colors.secondary,
     fontWeight: '700',
     letterSpacing: 0.8,
   },
@@ -307,25 +307,25 @@ const styles = StyleSheet.create({
   },
   createInput: {
     flex: 1,
-    backgroundColor: rgba(HUD_THEME.secondary, 0.08),
+    backgroundColor: withAlpha(hudThemes.violet.colors.secondary, 0.08),
     borderWidth: 1,
-    borderColor: rgba(HUD_THEME.secondary, 0.25),
+    borderColor: withAlpha(hudThemes.violet.colors.secondary, 0.25),
     borderRadius: 10,
-    color: HUD_THEME.text,
+    color: hudThemes.violet.colors.text,
     fontSize: 15,
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
   createButton: {
-    backgroundColor: rgba(HUD_THEME.secondary, 0.12),
+    backgroundColor: withAlpha(hudThemes.violet.colors.secondary, 0.12),
     borderWidth: 1,
-    borderColor: rgba(HUD_THEME.secondary, 0.35),
+    borderColor: withAlpha(hudThemes.violet.colors.secondary, 0.35),
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderRadius: 10,
   },
   createButtonText: {
-    color: HUD_THEME.secondary,
+    color: hudThemes.violet.colors.secondary,
     fontWeight: '700',
     letterSpacing: 1,
   },
@@ -336,9 +336,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 14,
     borderRadius: 12,
-    backgroundColor: rgba(HUD_THEME.secondary, 0.06),
+    backgroundColor: withAlpha(hudThemes.violet.colors.secondary, 0.06),
     borderWidth: 1,
-    borderColor: rgba(HUD_THEME.secondary, 0.12),
+    borderColor: withAlpha(hudThemes.violet.colors.secondary, 0.12),
     marginBottom: 10,
   },
   listRowPressed: {
@@ -350,22 +350,22 @@ const styles = StyleSheet.create({
   listName: {
     fontSize: 18,
     fontWeight: '700',
-    color: HUD_THEME.text,
+    color: hudThemes.violet.colors.text,
   },
   listMeta: {
     marginTop: 4,
     fontSize: 12,
-    color: HUD_THEME.muted,
+    color: hudThemes.violet.colors.muted,
     letterSpacing: 0.75,
   },
   chevron: {
     fontSize: 26,
-    color: HUD_THEME.secondary,
+    color: hudThemes.violet.colors.secondary,
   },
   sectionTitle: {
     marginTop: 10,
     marginBottom: 12,
-    color: HUD_THEME.muted,
+    color: hudThemes.violet.colors.muted,
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 2,

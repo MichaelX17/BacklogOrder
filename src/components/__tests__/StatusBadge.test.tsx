@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react-native';
 
-import StatusBadge from '../StatusBadge';
+import { StatusBadge } from '../StatusBadge';
 import type { GameStatus } from '@/types';
 
 describe('StatusBadge', () => {

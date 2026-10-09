@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
-import FranchiseGroup from '../FranchiseGroup';
+import { FranchiseGroup } from '../FranchiseGroup';
 import type { ListEntry } from '@/types';
 import type { ScoredGame } from '@/utils/sorting';
 

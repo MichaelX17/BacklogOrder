@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react-native';
 
-import EmptyState from '../EmptyState';
+import { EmptyState } from '../EmptyState';
 
 describe('EmptyState', () => {
   it('renders title and message', async () => {

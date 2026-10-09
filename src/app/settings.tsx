@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { HUD_THEME, rgba } from '@/theme/hudTheme';
+import { hudThemes, withAlpha } from '@/theme/hudTheme';
 import { useGamesStore } from '@/stores/gamesStore';
 import { useListsStore } from '@/stores/listsStore';
 import { exportAll, exportList, shareData } from '@/services/export';
@@ -58,7 +58,7 @@ export default function SettingsScreen() {
   if (!isLoaded) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={HUD_THEME.primary} />
+        <ActivityIndicator size="large" color={hudThemes.violet.colors.primary} />
       </View>
     );
   }
@@ -75,7 +75,7 @@ export default function SettingsScreen() {
           disabled={isExporting}
         >
           {isExporting ? (
-            <ActivityIndicator size="small" color={HUD_THEME.text} />
+            <ActivityIndicator size="small" color={hudThemes.violet.colors.text} />
           ) : (
             <Text style={styles.buttonText}>Export All Lists</Text>
           )}
@@ -101,7 +101,7 @@ export default function SettingsScreen() {
           disabled={isImporting}
         >
           {isImporting ? (
-            <ActivityIndicator size="small" color={HUD_THEME.text} />
+            <ActivityIndicator size="small" color={hudThemes.violet.colors.text} />
           ) : (
             <Text style={styles.buttonText}>Import from File</Text>
           )}
@@ -114,43 +114,43 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: HUD_THEME.bgFrom,
+    backgroundColor: hudThemes.violet.colors.bgFrom,
     padding: 16,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: HUD_THEME.bgFrom,
+    backgroundColor: hudThemes.violet.colors.bgFrom,
   },
   title: {
     fontSize: 24,
     fontWeight: '800',
-    color: HUD_THEME.text,
+    color: hudThemes.violet.colors.text,
     marginBottom: 24,
   },
   section: {
-    backgroundColor: rgba(HUD_THEME.secondary, 0.05),
+    backgroundColor: withAlpha(hudThemes.violet.colors.secondary, 0.05),
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: rgba(HUD_THEME.secondary, 0.18),
+    borderColor: withAlpha(hudThemes.violet.colors.secondary, 0.18),
     padding: 16,
     marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: HUD_THEME.text,
+    color: hudThemes.violet.colors.text,
     marginBottom: 12,
     letterSpacing: 1,
   },
   button: {
-    backgroundColor: HUD_THEME.primary,
+    backgroundColor: hudThemes.violet.colors.primary,
     borderRadius: 10,
     padding: 12,
     alignItems: 'center',
     marginBottom: 8,
-    shadowColor: HUD_THEME.primary,
+    shadowColor: hudThemes.violet.colors.primary,
     shadowOpacity: 0.3,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 0 },
@@ -164,12 +164,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   secondaryButton: {
-    backgroundColor: rgba(HUD_THEME.secondary, 0.1),
+    backgroundColor: withAlpha(hudThemes.violet.colors.secondary, 0.1),
     borderWidth: 1,
-    borderColor: rgba(HUD_THEME.secondary, 0.2),
+    borderColor: withAlpha(hudThemes.violet.colors.secondary, 0.2),
   },
   buttonTextSecondary: {
-    color: HUD_THEME.secondary,
+    color: hudThemes.violet.colors.secondary,
     fontSize: 15,
     fontWeight: '700',
   },

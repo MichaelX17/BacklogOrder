@@ -3,12 +3,12 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import EmptyState from '@/components/EmptyState';
+import { EmptyState } from '@/components/EmptyState';
 import FilterSheet from '@/components/FilterSheet';
-import FranchiseGroup from '@/components/FranchiseGroup';
+import { FranchiseGroup } from '@/components/FranchiseGroup';
 import { useGamesStore } from '@/stores/gamesStore';
 import { useListsStore } from '@/stores/listsStore';
-import { HUD_THEME, rgba } from '@/theme/hudTheme';
+import { hudThemes, withAlpha } from '@/theme/hudTheme';
 import { applyFilters, DEFAULT_FILTERS, isFilterActive, type FilterState } from '@/utils/filters';
 import {
   sortGames,
@@ -68,7 +68,7 @@ export default function ListDetailScreen() {
   if (!isEntriesLoaded) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator size="large" color={HUD_THEME.secondary} />
+        <ActivityIndicator size="large" color={hudThemes.violet.colors.secondary} />
       </View>
     );
   }
@@ -161,13 +161,13 @@ export default function ListDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: HUD_THEME.bgFrom,
+    backgroundColor: hudThemes.violet.colors.bgFrom,
   },
   loading: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: HUD_THEME.bgFrom,
+    backgroundColor: hudThemes.violet.colors.bgFrom,
   },
   actions: {
     flexDirection: 'row',
@@ -177,11 +177,11 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-    backgroundColor: HUD_THEME.primary,
+    backgroundColor: hudThemes.violet.colors.primary,
     borderRadius: 10,
     padding: 12,
     alignItems: 'center',
-    shadowColor: HUD_THEME.primary,
+    shadowColor: hudThemes.violet.colors.primary,
     shadowOpacity: 0.35,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 0 },
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   actionButtonSecondary: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: rgba(HUD_THEME.secondary, 0.6),
+    borderColor: withAlpha(hudThemes.violet.colors.secondary, 0.6),
   },
   actionButtonPressed: {
     opacity: 0.7,
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   actionButtonSecondaryText: {
-    color: HUD_THEME.secondary,
+    color: hudThemes.violet.colors.secondary,
     fontSize: 15,
     fontWeight: '700',
     letterSpacing: 0.8,
@@ -214,29 +214,29 @@ const styles = StyleSheet.create({
   },
   filterButton: {
     flex: 1,
-    backgroundColor: rgba(HUD_THEME.secondary, 0.08),
+    backgroundColor: withAlpha(hudThemes.violet.colors.secondary, 0.08),
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: rgba(HUD_THEME.secondary, 0.25),
+    borderColor: withAlpha(hudThemes.violet.colors.secondary, 0.25),
     padding: 12,
     alignItems: 'center',
   },
   filterButtonText: {
-    color: HUD_THEME.text,
+    color: hudThemes.violet.colors.text,
     fontSize: 15,
     fontWeight: '700',
   },
   clearButton: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: rgba(HUD_THEME.secondary, 0.35),
+    borderColor: withAlpha(hudThemes.violet.colors.secondary, 0.35),
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 12,
     alignItems: 'center',
   },
   clearButtonText: {
-    color: HUD_THEME.secondary,
+    color: hudThemes.violet.colors.secondary,
     fontSize: 15,
     fontWeight: '600',
   },

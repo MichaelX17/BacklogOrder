@@ -3,8 +3,8 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import EmptyState from '@/components/EmptyState';
-import { HUD_THEME, rgba } from '@/theme/hudTheme';
+import { EmptyState } from '@/components/EmptyState';
+import { hudThemes, withAlpha } from '@/theme/hudTheme';
 import { useGamesStore } from '@/stores/gamesStore';
 import { parseCsv } from '@/utils/parseCsv';
 import type { NewGame } from '@/types';
@@ -138,7 +138,7 @@ export default function ManualGameScreen() {
             setFieldErrors((prev) => ({ ...prev, name: undefined }));
           }}
           placeholder="Game name"
-          placeholderTextColor={HUD_THEME.muted}
+          placeholderTextColor={hudThemes.violet.colors.muted}
         />
         {fieldErrors.name !== undefined ? (
           <Text style={styles.error}>{fieldErrors.name}</Text>
@@ -150,7 +150,7 @@ export default function ManualGameScreen() {
           value={cover}
           onChangeText={setCover}
           placeholder="https://…"
-          placeholderTextColor={HUD_THEME.muted}
+          placeholderTextColor={hudThemes.violet.colors.muted}
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="url"
@@ -165,7 +165,7 @@ export default function ManualGameScreen() {
             setFieldErrors((prev) => ({ ...prev, metacritic: undefined }));
           }}
           placeholder="e.g. 92"
-          placeholderTextColor={HUD_THEME.muted}
+          placeholderTextColor={hudThemes.violet.colors.muted}
           keyboardType="number-pad"
         />
         {fieldErrors.metacritic !== undefined ? (
@@ -181,7 +181,7 @@ export default function ManualGameScreen() {
             setFieldErrors((prev) => ({ ...prev, rating: undefined }));
           }}
           placeholder="e.g. 4.5"
-          placeholderTextColor={HUD_THEME.muted}
+          placeholderTextColor={hudThemes.violet.colors.muted}
           keyboardType="decimal-pad"
         />
         {fieldErrors.rating !== undefined ? (
@@ -197,7 +197,7 @@ export default function ManualGameScreen() {
             setFieldErrors((prev) => ({ ...prev, playtime: undefined }));
           }}
           placeholder="e.g. 30"
-          placeholderTextColor={HUD_THEME.muted}
+          placeholderTextColor={hudThemes.violet.colors.muted}
           keyboardType="decimal-pad"
         />
         {fieldErrors.playtime !== undefined ? (
@@ -210,7 +210,7 @@ export default function ManualGameScreen() {
           value={genres}
           onChangeText={setGenres}
           placeholder="RPG, Action"
-          placeholderTextColor={HUD_THEME.muted}
+          placeholderTextColor={hudThemes.violet.colors.muted}
         />
 
         <Text style={styles.label}>Platforms, comma-separated (optional)</Text>
@@ -219,7 +219,7 @@ export default function ManualGameScreen() {
           value={platforms}
           onChangeText={setPlatforms}
           placeholder="PC, PlayStation 5"
-          placeholderTextColor={HUD_THEME.muted}
+          placeholderTextColor={hudThemes.violet.colors.muted}
         />
 
         <Text style={styles.label}>Franchise (optional)</Text>
@@ -228,7 +228,7 @@ export default function ManualGameScreen() {
           value={franchise}
           onChangeText={setFranchise}
           placeholder="e.g. Hades"
-          placeholderTextColor={HUD_THEME.muted}
+          placeholderTextColor={hudThemes.violet.colors.muted}
         />
 
         <Text style={styles.label}>Franchise order (optional)</Text>
@@ -240,7 +240,7 @@ export default function ManualGameScreen() {
             setFieldErrors((prev) => ({ ...prev, franchiseOrder: undefined }));
           }}
           placeholder="e.g. 2"
-          placeholderTextColor={HUD_THEME.muted}
+          placeholderTextColor={hudThemes.violet.colors.muted}
           keyboardType="number-pad"
         />
         {fieldErrors.franchiseOrder !== undefined ? (
@@ -263,7 +263,7 @@ export default function ManualGameScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: HUD_THEME.bgFrom,
+    backgroundColor: hudThemes.violet.colors.bgFrom,
   },
   content: {
     padding: 16,
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '700',
-    color: HUD_THEME.text,
+    color: hudThemes.violet.colors.text,
     marginBottom: 6,
     marginTop: 10,
     letterSpacing: 0.8,
@@ -281,12 +281,12 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: rgba(HUD_THEME.secondary, 0.25),
+    borderColor: withAlpha(hudThemes.violet.colors.secondary, 0.25),
     borderRadius: 10,
     padding: 12,
     fontSize: 16,
-    color: HUD_THEME.text,
-    backgroundColor: rgba(HUD_THEME.secondary, 0.06),
+    color: hudThemes.violet.colors.text,
+    backgroundColor: withAlpha(hudThemes.violet.colors.secondary, 0.06),
   },
   error: {
     marginTop: 4,
@@ -295,11 +295,11 @@ const styles = StyleSheet.create({
   },
   createButton: {
     marginTop: 24,
-    backgroundColor: HUD_THEME.primary,
+    backgroundColor: hudThemes.violet.colors.primary,
     borderRadius: 10,
     padding: 16,
     alignItems: 'center',
-    shadowColor: HUD_THEME.primary,
+    shadowColor: hudThemes.violet.colors.primary,
     shadowOpacity: 0.35,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 0 },

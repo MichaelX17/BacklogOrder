@@ -18,7 +18,7 @@ import { searchGames } from '@/services/rawg/client';
 import { RawgApiError, rawgErrorMessage } from '@/services/rawg/errors';
 import type { RawgGame } from '@/services/rawg/types';
 import { getApiKey } from '@/services/secureStore';
-import { HUD_THEME, rgba } from '@/theme/hudTheme';
+import { hudThemes, withAlpha } from '@/theme/hudTheme';
 
 export default function SearchScreen() {
   const [query, setQuery] = useState('');
@@ -121,7 +121,7 @@ export default function SearchScreen() {
           value={query}
           onChangeText={setQuery}
           placeholder="Search games on RAWG"
-          placeholderTextColor={HUD_THEME.muted}
+          placeholderTextColor={hudThemes.violet.colors.muted}
           autoCapitalize="none"
           autoCorrect={false}
           returnKeyType="search"
@@ -132,7 +132,7 @@ export default function SearchScreen() {
       ) : null}
       {isSearching ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color={HUD_THEME.secondary} />
+          <ActivityIndicator size="large" color={hudThemes.violet.colors.secondary} />
         </View>
       ) : (
         <FlatList
@@ -166,22 +166,22 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: HUD_THEME.bgFrom,
+    backgroundColor: hudThemes.violet.colors.bgFrom,
   },
   searchBar: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: rgba(HUD_THEME.secondary, 0.18),
-    backgroundColor: rgba(HUD_THEME.secondary, 0.04),
+    borderBottomColor: withAlpha(hudThemes.violet.colors.secondary, 0.18),
+    backgroundColor: withAlpha(hudThemes.violet.colors.secondary, 0.04),
   },
   searchInput: {
     borderWidth: 1,
-    borderColor: rgba(HUD_THEME.secondary, 0.3),
+    borderColor: withAlpha(hudThemes.violet.colors.secondary, 0.3),
     borderRadius: 10,
     padding: 12,
     fontSize: 16,
-    color: HUD_THEME.text,
-    backgroundColor: rgba(HUD_THEME.secondary, 0.08),
+    color: hudThemes.violet.colors.text,
+    backgroundColor: withAlpha(hudThemes.violet.colors.secondary, 0.08),
   },
   error: {
     margin: 16,
@@ -203,9 +203,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     padding: 10,
     borderRadius: 12,
-    backgroundColor: rgba(HUD_THEME.secondary, 0.04),
+    backgroundColor: withAlpha(hudThemes.violet.colors.secondary, 0.04),
     borderWidth: 1,
-    borderColor: rgba(HUD_THEME.secondary, 0.12),
+    borderColor: withAlpha(hudThemes.violet.colors.secondary, 0.12),
   },
   cover: {
     width: 68,
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#211f30',
     borderWidth: 1,
-    borderColor: rgba(HUD_THEME.primary, 0.3),
+    borderColor: withAlpha(hudThemes.violet.colors.primary, 0.3),
   },
   coverPlaceholder: {
     backgroundColor: '#2d2e3d',
@@ -225,20 +225,20 @@ const styles = StyleSheet.create({
   gameName: {
     fontSize: 16,
     fontWeight: '700',
-    color: HUD_THEME.text,
+    color: hudThemes.violet.colors.text,
   },
   gameMeta: {
     marginTop: 4,
     fontSize: 13,
-    color: HUD_THEME.muted,
+    color: hudThemes.violet.colors.muted,
   },
   addButton: {
     marginLeft: 12,
-    backgroundColor: HUD_THEME.primary,
+    backgroundColor: hudThemes.violet.colors.primary,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    shadowColor: HUD_THEME.primary,
+    shadowColor: hudThemes.violet.colors.primary,
     shadowOpacity: 0.35,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 0 },
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
   emptyText: {
     marginTop: 32,
     fontSize: 15,
-    color: HUD_THEME.muted,
+    color: hudThemes.violet.colors.muted,
     textAlign: 'center',
   },
 });

@@ -3,10 +3,10 @@ import { useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import EmptyState from '@/components/EmptyState';
-import StatusBadge from '@/components/StatusBadge';
+import { EmptyState } from '@/components/EmptyState';
+import { StatusBadge } from '@/components/StatusBadge';
 import { gamesRepo } from '@/db/repositories';
-import { HUD_THEME, rgba } from '@/theme/hudTheme';
+import { hudThemes, withAlpha } from '@/theme/hudTheme';
 import { useGamesStore } from '@/stores/gamesStore';
 import { toScoredGame } from '@/utils/sorting';
 import { GAME_STATUSES } from '@/types';
@@ -162,7 +162,7 @@ function GameDetailContent({ game, listId }: GameDetailContentProps) {
               setError(null);
             }}
             placeholder="Franchise name (optional)"
-            placeholderTextColor={HUD_THEME.muted}
+            placeholderTextColor={hudThemes.violet.colors.muted}
           />
           <TextInput
             style={styles.input}
@@ -172,7 +172,7 @@ function GameDetailContent({ game, listId }: GameDetailContentProps) {
               setError(null);
             }}
             placeholder="Order in saga (optional)"
-            placeholderTextColor={HUD_THEME.muted}
+            placeholderTextColor={hudThemes.violet.colors.muted}
             keyboardType="number-pad"
           />
           {error !== null ? <Text style={styles.error}>{error}</Text> : null}
@@ -219,7 +219,7 @@ function GameDetailContent({ game, listId }: GameDetailContentProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: HUD_THEME.bgFrom,
+    backgroundColor: hudThemes.violet.colors.bgFrom,
   },
   content: {
     padding: 16,
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: '#2b1f38',
     borderWidth: 1,
-    borderColor: rgba(HUD_THEME.primary, 0.4),
+    borderColor: withAlpha(hudThemes.violet.colors.primary, 0.4),
   },
   coverPlaceholder: {
     backgroundColor: '#2d2e3d',
@@ -247,35 +247,35 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 24,
     fontWeight: '800',
-    color: HUD_THEME.text,
+    color: hudThemes.violet.colors.text,
   },
   scoreBadge: {
     marginTop: 10,
     alignSelf: 'flex-start',
-    backgroundColor: rgba(HUD_THEME.primary, 0.12),
-    borderColor: rgba(HUD_THEME.primary, 0.6),
+    backgroundColor: withAlpha(hudThemes.violet.colors.primary, 0.12),
+    borderColor: withAlpha(hudThemes.violet.colors.primary, 0.6),
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
   scoreText: {
-    color: HUD_THEME.primary,
+    color: hudThemes.violet.colors.primary,
     fontSize: 16,
     fontWeight: '800',
   },
   noScore: {
     marginTop: 8,
     fontSize: 14,
-    color: HUD_THEME.muted,
+    color: hudThemes.violet.colors.muted,
   },
   warningBox: {
-    backgroundColor: rgba(HUD_THEME.playing, 0.08),
+    backgroundColor: withAlpha(hudThemes.violet.colors.playing, 0.08),
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: rgba(HUD_THEME.playing, 0.45),
+    borderColor: withAlpha(hudThemes.violet.colors.playing, 0.45),
   },
   warningText: {
     fontSize: 13,
@@ -283,34 +283,34 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
   section: {
-    backgroundColor: rgba(HUD_THEME.secondary, 0.05),
+    backgroundColor: withAlpha(hudThemes.violet.colors.secondary, 0.05),
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: rgba(HUD_THEME.secondary, 0.18),
+    borderColor: withAlpha(hudThemes.violet.colors.secondary, 0.18),
     padding: 16,
     marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: HUD_THEME.text,
+    color: hudThemes.violet.colors.text,
     marginBottom: 10,
     letterSpacing: 1,
   },
   metaRow: {
     fontSize: 14,
-    color: HUD_THEME.text,
+    color: hudThemes.violet.colors.text,
     marginBottom: 6,
   },
   input: {
-    backgroundColor: rgba(HUD_THEME.secondary, 0.05),
-    borderColor: rgba(HUD_THEME.secondary, 0.22),
+    backgroundColor: withAlpha(hudThemes.violet.colors.secondary, 0.05),
+    borderColor: withAlpha(hudThemes.violet.colors.secondary, 0.22),
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginBottom: 10,
-    color: HUD_THEME.text,
+    color: hudThemes.violet.colors.text,
   },
   error: {
     marginTop: 4,
@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
     color: '#ff8b8b',
   },
   saveButton: {
-    backgroundColor: HUD_THEME.secondary,
+    backgroundColor: hudThemes.violet.colors.secondary,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
@@ -339,19 +339,19 @@ const styles = StyleSheet.create({
   },
   chip: {
     borderWidth: 1,
-    borderColor: rgba(HUD_THEME.secondary, 0.2),
+    borderColor: withAlpha(hudThemes.violet.colors.secondary, 0.2),
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    backgroundColor: rgba(HUD_THEME.secondary, 0.04),
+    backgroundColor: withAlpha(hudThemes.violet.colors.secondary, 0.04),
   },
   chipSelected: {
-    backgroundColor: HUD_THEME.primary,
-    borderColor: HUD_THEME.primary,
+    backgroundColor: hudThemes.violet.colors.primary,
+    borderColor: hudThemes.violet.colors.primary,
   },
   chipText: {
     fontSize: 14,
-    color: HUD_THEME.text,
+    color: hudThemes.violet.colors.text,
     fontWeight: '700',
   },
   chipTextSelected: {

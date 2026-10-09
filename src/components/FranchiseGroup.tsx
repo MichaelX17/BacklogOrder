@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import GameCard from '@/components/GameCard';
-import { HUD_THEME } from '@/theme/hudTheme';
+import { GameCard } from '@/components/GameCard';
+import { BevelFrame } from '@/components/hud/BevelFrame';
+import { HexShape } from '@/components/hud/HexShape';
+import { DiamondDot } from '@/components/hud/DiamondDot';
+
 import type { ListEntry } from '@/types';
 import type { FranchiseGroup as FranchiseGroupData, ScoredGame } from '@/utils/sorting';
 
@@ -13,7 +16,7 @@ interface FranchiseGroupProps {
   onWarningPress?: () => void;
 }
 
-export default function FranchiseGroup({
+export function FranchiseGroup({
   group,
   entryByGameId,
   onGamePress,
@@ -26,7 +29,9 @@ export default function FranchiseGroup({
       {group.franchise !== null ? (
         <Pressable style={styles.header} onPress={() => setExpanded((current) => !current)}>
           <View style={styles.headerRow}>
-            <Text style={styles.headerTitle}>{group.franchise}</Text>
+            <HexShape style={styles.hexShape}>
+              <Text style={styles.headerTitle}>{group.franchise}</Text>
+            </HexShape>
             <Text style={styles.chevron}>{expanded ? '▾' : '▸'}</Text>
           </View>
           {group.hasMissingFranchiseOrder && expanded ? (
@@ -37,6 +42,7 @@ export default function FranchiseGroup({
               }}
               style={styles.warningWrap}
             >
+              <DiamondDot style={styles.warningDot} />
               <Text style={styles.headerWarning}>
                 Some games in this saga have no franchise order
               </Text>
@@ -61,30 +67,39 @@ const styles = StyleSheet.create({
   group: {
     marginBottom: 8,
   },
+  hexShape: {
+    marginRight: 8,
+  },
   header: {
     marginBottom: 8,
     marginTop: 8,
-    paddingVertical: 2,
+    padding: 8,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 4,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: HUD_THEME.text,
     letterSpacing: 1,
   },
   chevron: {
     fontSize: 18,
-    color: HUD_THEME.secondary,
+    color: '#22e6ff',
   },
   warningWrap: {
-    marginTop: 6,
-    paddingHorizontal: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    marginLeft: 4,
+    gap: 6,
+  },
+  warningDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 2,
   },
   headerWarning: {
     fontSize: 12,
