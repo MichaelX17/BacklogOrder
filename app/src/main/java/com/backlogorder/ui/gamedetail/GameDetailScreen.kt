@@ -41,10 +41,7 @@ import androidx.compose.material.icons.filled.StarHalf
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -52,13 +49,16 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -84,6 +84,7 @@ import com.backlogorder.domain.model.NewGame
 import com.backlogorder.domain.repository.ApiKeyProvider
 import com.backlogorder.domain.repository.GamesRepository
 import com.backlogorder.domain.score.ScoreCalculator
+import com.backlogorder.ui.common.FranchiseAutocompleteField
 import com.backlogorder.ui.common.InteractiveCropDialog
 import com.backlogorder.ui.hud.BevelFrame
 import com.backlogorder.ui.hud.BevelImage
@@ -349,6 +350,7 @@ private suspend fun saveImageToDevicePictures(context: Context, model: Any, name
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GameDetailScreen(
     listId: String,
@@ -378,9 +380,9 @@ fun GameDetailScreen(
         )
     },
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val existingFranchises by viewModel.existingFranchises.collectAsState()
-    val franchiseGames by viewModel.franchiseGames.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val existingFranchises by viewModel.existingFranchises.collectAsStateWithLifecycle()
+    val franchiseGames by viewModel.franchiseGames.collectAsStateWithLifecycle()
     val entry = uiState.entry
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -404,12 +406,13 @@ fun GameDetailScreen(
         }
     }
 
-    BacklogTheme {
-        val colors = LocalHudColors.current
-        Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .imePadding(),
+    val colors = LocalHudColors.current
+    var isRefreshing by remember { mutableStateOf(false) }
+
+    Surface(
+        modifier = Modifier
+            .fillMaxSize()
+            .imePadding(),
             color = colors.background,
         ) {
             if (entry == null) {
@@ -423,13 +426,27 @@ fun GameDetailScreen(
                 return@Surface
             }
 
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+            PullToRefreshBox(
+                isRefreshing = isRefreshing || uiState.isReloadingCover,
+                onRefresh = {
+                    isRefreshing = true
+                    coroutineScope.launch {
+                        if (entry.game.rawgId != null) {
+                            viewModel.reloadRawgCover()
+                        }
+                        delay(600)
+                        isRefreshing = false
+                    }
+                },
+                modifier = Modifier.fillMaxSize(),
             ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -451,9 +468,9 @@ fun GameDetailScreen(
                             .clip(RoundedCornerShape(14.dp))
                             .clickable { showCoverDialog = true },
                     ) {
-                        if (!entry.game.backgroundImage.isNullOrBlank()) {
+                        if (!entry.game.backgroundImage.isNullOrBlank() || !entry.game.backgroundImageUrl.isNullOrBlank()) {
                             BevelImage(
-                                model = entry.game.backgroundImage!!,
+                                game = entry.game,
                                 contentDescription = "${entry.game.name} cover",
                                 modifier = Modifier.fillMaxSize(),
                             )
@@ -769,7 +786,11 @@ fun GameDetailScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalArrangement = Arrangement.spacedBy(10.dp),
                             ) {
-                                items(franchiseGames, key = { "${it.listId}-${it.game.id}" }) { franchiseEntry ->
+                                items(
+                                    items = franchiseGames,
+                                    key = { "${it.listId}-${it.game.id}" },
+                                    contentType = { "franchise_game" },
+                                ) { franchiseEntry ->
                                     val itemScore = ScoreCalculator.computeScore(franchiseEntry.game)
                                     BevelFrame(
                                         backgroundColor = colors.surface,
@@ -781,9 +802,9 @@ fun GameDetailScreen(
                                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                                         ) {
                                             // Cover on Left
-                                            if (!franchiseEntry.game.backgroundImage.isNullOrBlank()) {
+                                            if (!franchiseEntry.game.backgroundImage.isNullOrBlank() || !franchiseEntry.game.backgroundImageUrl.isNullOrBlank()) {
                                                 BevelImage(
-                                                    model = franchiseEntry.game.backgroundImage!!,
+                                                    game = franchiseEntry.game,
                                                     contentDescription = franchiseEntry.game.name,
                                                     modifier = Modifier
                                                         .size(56.dp)
@@ -1059,9 +1080,9 @@ fun GameDetailScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            if (!entry.game.backgroundImage.isNullOrBlank()) {
+                            if (!entry.game.backgroundImage.isNullOrBlank() || !entry.game.backgroundImageUrl.isNullOrBlank()) {
                                 BevelImage(
-                                    model = entry.game.backgroundImage!!,
+                                    game = entry.game,
                                     contentDescription = entry.game.name,
                                     modifier = Modifier
                                         .size(200.dp)
@@ -1140,11 +1161,12 @@ fun GameDetailScreen(
                                     }
                                 }
 
-                                if (!entry.game.backgroundImage.isNullOrBlank()) {
+                                val coverModel = entry.game.backgroundImage ?: entry.game.backgroundImageUrl
+                                if (!coverModel.isNullOrBlank()) {
                                     TextButton(
                                         onClick = {
                                             coroutineScope.launch {
-                                                val success = saveImageToDevicePictures(context, entry.game.backgroundImage!!, entry.game.name)
+                                                val success = saveImageToDevicePictures(context, coverModel, entry.game.name)
                                                 if (success) {
                                                     Toast.makeText(context, "Saved cover to Pictures/BacklogOrder", Toast.LENGTH_SHORT).show()
                                                 } else {
@@ -1209,77 +1231,7 @@ fun GameDetailScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun FranchiseAutocompleteField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    existingFranchises: List<String>,
-    modifier: Modifier = Modifier,
-) {
-    val colors = LocalHudColors.current
-    var expanded by remember { mutableStateOf(false) }
 
-    val filteredFranchises = remember(value, existingFranchises) {
-        if (value.isBlank()) {
-            existingFranchises
-        } else {
-            existingFranchises.filter { it.contains(value, ignoreCase = true) }
-        }
-    }
-
-    ExposedDropdownMenuBox(
-        expanded = expanded && filteredFranchises.isNotEmpty(),
-        onExpandedChange = { expanded = it },
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        OutlinedTextField(
-            value = value,
-            onValueChange = {
-                onValueChange(it)
-                expanded = true
-            },
-            label = { Text("Franchise Name (Optional)", color = colors.textMuted) },
-            singleLine = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable),
-            shape = RoundedCornerShape(14.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-                focusedBorderColor = colors.accent,
-                unfocusedBorderColor = colors.textMuted.copy(alpha = 0.35f),
-                focusedTextColor = colors.text,
-                unfocusedTextColor = colors.text,
-            ),
-        )
-
-        if (filteredFranchises.isNotEmpty()) {
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                containerColor = colors.panel,
-            ) {
-                filteredFranchises.forEach { franchise ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = franchise,
-                                color = colors.text,
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                        },
-                        onClick = {
-                            onValueChange(franchise)
-                            expanded = false
-                        },
-                    )
-                }
-            }
-        }
-    }
-}
 
 @Composable
 private fun MetricColumnCard(

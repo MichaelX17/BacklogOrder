@@ -1,7 +1,6 @@
 package com.backlogorder.di
 
 import android.content.Context
-import androidx.room.Room
 import com.backlogorder.data.local.BacklogOrderDatabase
 import com.backlogorder.data.remote.RawgApiFactory
 import com.backlogorder.data.remote.RawgApiService
@@ -14,6 +13,10 @@ import com.backlogorder.domain.repository.ApiKeyProvider
 import com.backlogorder.domain.repository.GamesRepository
 import com.backlogorder.domain.repository.ListsRepository
 import com.backlogorder.domain.repository.SettingsRepository
+import com.backlogorder.util.CoverImageDownloader
+import com.backlogorder.util.CoverRefresher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 
 interface AppContainer {
     val database: BacklogOrderDatabase
@@ -24,15 +27,14 @@ interface AppContainer {
     val rawgApiService: RawgApiService
     val rawgRemoteDataSource: RawgRemoteDataSource
     val appDispatchers: AppDispatchers
+    val applicationScope: CoroutineScope
+    val coverImageDownloader: CoverImageDownloader
+    val coverRefresher: CoverRefresher
 }
 
 class DefaultAppContainer(private val context: Context) : AppContainer {
     override val database: BacklogOrderDatabase by lazy {
-        Room.databaseBuilder(
-            context.applicationContext,
-            BacklogOrderDatabase::class.java,
-            "backlogorder.db",
-        ).build()
+        BacklogOrderDatabase.create(context.applicationContext)
     }
 
     override val apiKeyProvider: ApiKeyProvider by lazy {
@@ -48,7 +50,7 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     }
 
     override val gamesRepository: GamesRepository by lazy {
-        RoomGamesRepository(database)
+        RoomGamesRepository(database, context = context.applicationContext)
     }
 
     override val rawgApiService: RawgApiService by lazy {
@@ -63,5 +65,21 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
 
     override val appDispatchers: AppDispatchers by lazy {
         AppDispatchers()
+    }
+
+    override val applicationScope: CoroutineScope by lazy {
+        CoroutineScope(SupervisorJob() + appDispatchers.io)
+    }
+
+    override val coverImageDownloader: CoverImageDownloader by lazy {
+        CoverImageDownloader(context.applicationContext)
+    }
+
+    override val coverRefresher: CoverRefresher by lazy {
+        CoverRefresher(
+            downloader = coverImageDownloader,
+            gamesRepository = gamesRepository as RoomGamesRepository,
+            scope = applicationScope,
+        )
     }
 }

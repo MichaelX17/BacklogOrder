@@ -9,8 +9,7 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
+import java.security.MessageDigest
 import java.util.UUID
 
 object UuidSerializer : KSerializer<UUID> {
@@ -23,6 +22,13 @@ object UuidSerializer : KSerializer<UUID> {
     }
 }
 
+sealed class ExportError : Exception() {
+    data class StorageFull(val neededBytes: Long? = null) : ExportError()
+    data class WriteFailed(override val cause: Throwable) : ExportError()
+    data class VerificationFailed(val reason: String) : ExportError()
+    data class ShareFailed(override val cause: Throwable) : ExportError()
+}
+
 /**
  * Root export data model matching docs/export-schema-v1.md
  */
@@ -30,6 +36,9 @@ object UuidSerializer : KSerializer<UUID> {
 data class ExportData(
     val version: Int = 1,
     val app: String = "BacklogOrder",
+    val appVersion: String = "unknown",
+    val format: String = "json",
+    val contentHashAlgorithm: String = "sha256-v1",
     val exportedAt: Long = System.currentTimeMillis(),
     val lists: List<ExportedList> = emptyList(),
     val games: List<ExportedGame> = emptyList(),
@@ -38,7 +47,6 @@ data class ExportData(
     init {
         require(version == 1) { "Unsupported export version: $version. Expected 1." }
         require(app == "BacklogOrder") { "Invalid app name: $app. Expected 'BacklogOrder'." }
-        require(lists.isNotEmpty()) { "Export must contain at least one list." }
     }
 }
 
@@ -64,6 +72,7 @@ data class ExportedGame(
     val rawgId: Int? = null,
     @SerialName("name") val gameName: String,
     val backgroundImage: String? = null,
+    val backgroundImageUrl: String? = null,
     val metacritic: Int? = null,
     val rating: Double? = null,
     val playtimeHours: Double? = null,
@@ -74,13 +83,13 @@ data class ExportedGame(
     val franchiseName: String? = null,
     val franchiseOrder: Int? = null,
     val createdAt: Long,
-    val updatedAt: Long
+    val updatedAt: Long,
+    val contentHash: String = ""
 ) {
     init {
         require(gameName.isNotBlank()) { "Game name cannot be blank." }
         require(createdAt > 0) { "Game createdAt must be positive." }
         require(updatedAt > 0) { "Game updatedAt must be positive." }
-        require(isManual) { "Only manual games can be exported." }
         if (metacritic != null) {
             require(metacritic in 0..100) { "Metacritic must be 0-100." }
         }
@@ -110,6 +119,60 @@ data class ExportedListGame(
         require(status in setOf(GameStatus.BACKLOG, GameStatus.PLAYING, GameStatus.COMPLETED, GameStatus.DROPPED)) {
             "Status must be one of: BACKLOG, PLAYING, COMPLETED, DROPPED"
         }
+    }
+}
+
+object GameContentHasher {
+    fun computeHash(
+        name: String,
+        rawgId: Int?,
+        metacritic: Int?,
+        rating: Double?,
+        playtimeHours: Double?,
+        genres: List<String>,
+        platforms: List<String>,
+        tags: List<String>,
+        isManual: Boolean,
+        franchiseName: String?,
+        franchiseOrder: Int?,
+    ): String {
+        val sortedGenres = genres.sorted().joinToString(",")
+        val sortedPlatforms = platforms.sorted().joinToString(",")
+        val sortedTags = tags.sorted().joinToString(",")
+
+        val canonicalString = buildString {
+            append(name).append("|")
+            append(rawgId?.toString() ?: "null").append("|")
+            append(metacritic?.toString() ?: "null").append("|")
+            append(rating?.toString() ?: "null").append("|")
+            append(playtimeHours?.toString() ?: "null").append("|")
+            append(sortedGenres).append("|")
+            append(sortedPlatforms).append("|")
+            append(sortedTags).append("|")
+            append(isManual).append("|")
+            append(franchiseName ?: "null").append("|")
+            append(franchiseOrder?.toString() ?: "null")
+        }
+
+        val digest = MessageDigest.getInstance("SHA-256")
+        val bytes = digest.digest(canonicalString.toByteArray(Charsets.UTF_8))
+        return bytes.joinToString("") { "%02x".format(it) }
+    }
+
+    fun computeHash(game: ExportedGame): String {
+        return computeHash(
+            name = game.gameName,
+            rawgId = game.rawgId,
+            metacritic = game.metacritic,
+            rating = game.rating,
+            playtimeHours = game.playtimeHours,
+            genres = game.genres,
+            platforms = game.platforms,
+            tags = game.tags,
+            isManual = game.isManual,
+            franchiseName = game.franchiseName,
+            franchiseOrder = game.franchiseOrder,
+        )
     }
 }
 
@@ -157,9 +220,6 @@ sealed class ValidationResult {
                 if (game.updatedAt <= 0) {
                     errors.add("Game '${game.gameName}' has invalid updatedAt: ${game.updatedAt}.")
                 }
-                if (!game.isManual) {
-                    errors.add("Game '${game.gameName}' is not manual and cannot be exported.")
-                }
                 if (game.metacritic != null && game.metacritic !in 0..100) {
                     errors.add("Game '${game.gameName}' has invalid metacritic: ${game.metacritic}. Must be 0-100.")
                 }
@@ -195,15 +255,29 @@ sealed class ValidationResult {
                 }
             }
 
+            return if (errors.isEmpty()) Valid else Invalid(errors)
+        }
+
+        fun validateStructure(data: ExportData): ValidationResult = validate(data)
+
+        fun validateForRestore(data: ExportData): ValidationResult {
+            val structureResult = validateStructure(data)
+            if (structureResult is Invalid) {
+                return structureResult
+            }
+
             val duplicatePairs = data.listGames
                 .groupBy { Pair(it.listId, it.gameId) }
                 .filter { it.value.size > 1 }
 
-            duplicatePairs.forEach { (pair, entries) ->
-                errors.add("Duplicate listGame entries for list ${pair.first} and game ${pair.second}: ${entries.size} entries.")
+            if (duplicatePairs.isNotEmpty()) {
+                val errors = duplicatePairs.map { (pair, entries) ->
+                    "Duplicate listGame entries for list ${pair.first} and game ${pair.second}: ${entries.size} entries."
+                }
+                return Invalid(errors)
             }
 
-            return if (errors.isEmpty()) Valid else Invalid(errors)
+            return Valid
         }
     }
 }

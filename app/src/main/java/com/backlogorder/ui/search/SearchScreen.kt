@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.Button
@@ -25,8 +26,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -290,19 +291,18 @@ fun SearchScreen(
     onBack: () -> Unit = {},
     onNavigateToOnboarding: () -> Unit = {},
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val selectedGame = uiState.selectedGame
     val errorText = uiState.errorMessage
     val statusText = uiState.statusMessage
 
-    BacklogTheme {
-        val colors = LocalHudColors.current
-        Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .imePadding(),
-            color = colors.background,
-        ) {
+    val colors = LocalHudColors.current
+    Surface(
+        modifier = Modifier
+            .fillMaxSize()
+            .imePadding(),
+        color = colors.background,
+    ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -387,7 +387,11 @@ fun SearchScreen(
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            items(uiState.results, key = { it.rawgId }) { game ->
+                            items(
+                                items = uiState.results,
+                                key = { it.rawgId },
+                                contentType = { "search_result" },
+                            ) { game ->
                                 SearchResultRow(
                                     game = game,
                                     onClick = { viewModel.onGameSelected(game) },
@@ -424,6 +428,15 @@ fun SearchScreen(
                                     label = { Text("New list name", color = colors.textMuted) },
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(14.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedContainerColor = Color.Transparent,
+                                        unfocusedContainerColor = Color.Transparent,
+                                        focusedBorderColor = colors.accent,
+                                        unfocusedBorderColor = colors.textMuted.copy(alpha = 0.35f),
+                                        focusedTextColor = colors.text,
+                                        unfocusedTextColor = colors.text,
+                                    ),
                                 )
                                 PrimaryButton(
                                     text = if (uiState.isAdding) "Adding..." else "Create list and add game",
@@ -453,6 +466,15 @@ fun SearchScreen(
                                     label = { Text("Or create a new list", color = colors.textMuted) },
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(14.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedContainerColor = Color.Transparent,
+                                        unfocusedContainerColor = Color.Transparent,
+                                        focusedBorderColor = colors.accent,
+                                        unfocusedBorderColor = colors.textMuted.copy(alpha = 0.35f),
+                                        focusedTextColor = colors.text,
+                                        unfocusedTextColor = colors.text,
+                                    ),
                                 )
                                 PrimaryButton(
                                     text = if (uiState.isAdding) "Adding..." else "Create list and add",
@@ -465,7 +487,6 @@ fun SearchScreen(
                 }
             }
         }
-    }
 }
 
 @Composable

@@ -11,6 +11,9 @@ interface ListDao {
     @Query("SELECT * FROM lists ORDER BY created_at DESC")
     fun observeLists(): Flow<List<ListEntity>>
 
+    @Query("SELECT * FROM lists")
+    suspend fun getAllListsDirect(): List<ListEntity>
+
     @Upsert
     suspend fun insertList(entity: ListEntity): Long
 
@@ -71,11 +74,17 @@ interface GamesDao {
     @Query("UPDATE games SET franchise_name = :name, franchise_order = :order WHERE id = :gameId")
     suspend fun setFranchise(gameId: String, name: String?, order: Int?)
 
+    @Query("UPDATE games SET background_image = :localPath, background_image_url = :url WHERE id = :gameId")
+    suspend fun updateCoverFields(gameId: String, localPath: String?, url: String?)
+
     @Query("SELECT * FROM games WHERE id = :gameId LIMIT 1")
     suspend fun getGameById(gameId: String): GameEntity?
 
     @Query("SELECT * FROM games")
     suspend fun getAllGames(): List<GameEntity>
+
+    @Query("DELETE FROM games WHERE id NOT IN (SELECT DISTINCT game_id FROM list_games)")
+    suspend fun deleteOrphanGames(): Int
 
     @Query("SELECT * FROM list_games WHERE list_id = :listId")
     suspend fun listGamesFor(listId: String): List<ListGameEntity>

@@ -2,6 +2,8 @@ package com.backlogorder.ui.onboarding
 
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,8 +25,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -147,6 +149,7 @@ class InMemorySettingsRepository(
 
     override suspend fun exportData(): Result<ExportData> = Result.success(ExportData())
     override suspend fun shareExportedData(exportedData: ExportData): Result<Uri> = Result.success(Uri.EMPTY)
+    override suspend fun downloadExportedData(exportedData: ExportData): Result<String> = Result.success("BacklogOrder_Export.json")
     override suspend fun importData(jsonString: String): Result<Unit> = Result.success(Unit)
     override suspend fun openDocumentForImport(): Result<String> = Result.success("")
     override fun validateExportSchema(): Result<Unit> = Result.success(Unit)
@@ -266,7 +269,7 @@ fun OnboardingScreen(
             }
         },
     )
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(uiState.validationState) {
         if (uiState.validationState == ApiKeyValidationStatus.SUCCESS) {
@@ -274,14 +277,13 @@ fun OnboardingScreen(
         }
     }
 
-    BacklogTheme {
-        val colors = LocalHudColors.current
-        Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .imePadding(),
-            color = colors.background,
-        ) {
+    val colors = LocalHudColors.current
+    Surface(
+        modifier = Modifier
+            .fillMaxSize()
+            .imePadding(),
+        color = colors.background,
+    ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -319,6 +321,7 @@ fun OnboardingScreen(
                             visualTransformation = PasswordVisualTransformation(),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                             modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(14.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = colors.accent,
                                 unfocusedBorderColor = colors.textMuted.copy(alpha = 0.5f),
@@ -365,5 +368,4 @@ fun OnboardingScreen(
                 }
             }
         }
-    }
 }

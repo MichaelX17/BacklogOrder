@@ -6,6 +6,8 @@ import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -33,6 +35,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -40,6 +43,16 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
+import com.backlogorder.data.repository.RoomSettingsRepository
+import com.backlogorder.domain.import.ImportResultState
+import com.backlogorder.ui.import.ImportConflictDialog
+import com.backlogorder.ui.import.ImportModeDialog
+import com.backlogorder.ui.import.ImportPreviewDialog
+import com.backlogorder.ui.import.ImportViewModel
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -47,6 +60,8 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -142,6 +157,20 @@ class SettingsViewModel(
             }
         }
     }
+
+    fun downloadData(context: android.content.Context) {
+        viewModelScope.launch {
+            val result = settingsRepository.exportData()
+            result.getOrNull()?.let { exportData ->
+                val downloadResult = settingsRepository.downloadExportedData(exportData)
+                val message = downloadResult.fold(
+                    onSuccess = { fileName -> "Export saved to Downloads folder ($fileName)" },
+                    onFailure = { error -> "Failed to save to Downloads: ${error.localizedMessage}" },
+                )
+                android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_LONG).show()
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -166,22 +195,38 @@ fun SettingsScreen(
         )
     },
 ) {
-    val apiKey by viewModel.apiKey.collectAsState()
-    val themeId by viewModel.themeId.collectAsState()
-    val isDarkMode by viewModel.isDarkMode.collectAsState()
-    val customColorHex by viewModel.customColorHex.collectAsState()
+    val importViewModel: ImportViewModel = run {
+        val context = LocalContext.current.applicationContext
+        val container = (context as? BacklogOrderApplication)?.container
+        viewModel(
+            factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                    if (container != null) {
+                        @Suppress("UNCHECKED_CAST")
+                        return ImportViewModel(settingsRepository = container.settingsRepository as RoomSettingsRepository) as T
+                    }
+                    error("Container not initialized")
+                }
+            },
+        )
+    }
+
+    val apiKey by viewModel.apiKey.collectAsStateWithLifecycle()
+    val themeId by viewModel.themeId.collectAsStateWithLifecycle()
+    val isDarkMode by viewModel.isDarkMode.collectAsStateWithLifecycle()
+    val customColorHex by viewModel.customColorHex.collectAsStateWithLifecycle()
 
     var apiKeyInput by remember { mutableStateOf("") }
     var saveMessage by remember { mutableStateOf<String?>(null) }
+    var showExportOptionDialog by remember { mutableStateOf(false) }
 
-    BacklogTheme(themeId = themeId, darkTheme = isDarkMode, customColorHex = customColorHex) {
-        val colors = LocalHudColors.current
-        Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .imePadding(),
-            color = colors.background,
-        ) {
+    val colors = LocalHudColors.current
+    Surface(
+        modifier = Modifier
+            .fillMaxSize()
+            .imePadding(),
+        color = colors.background,
+    ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -331,21 +376,33 @@ fun SettingsScreen(
                                 )
                                 mutableFloatStateOf(hsv[0])
                             }
+                            var localColorHex by remember(customColorHex) { mutableStateOf(customColorHex) }
+
+                            fun commitHex(newHex: String) {
+                                if (themeId != ThemeId.CUSTOM) {
+                                    viewModel.setThemeId(ThemeId.CUSTOM)
+                                }
+                                viewModel.setCustomColorHex(newHex)
+                            }
 
                             RainbowHueSlider(
                                 hue = currentHue,
-                                selectedColor = parseHexColor(customColorHex),
+                                selectedColor = parseHexColor(localColorHex),
                                 onHueChange = { newHue ->
                                     currentHue = newHue
                                     val rgbInt = android.graphics.Color.HSVToColor(floatArrayOf(newHue, 0.85f, 0.95f))
                                     val r = (rgbInt shrink 16) and 0xFF
                                     val g = (rgbInt shrink 8) and 0xFF
                                     val b = rgbInt and 0xFF
-                                    val newHex = String.format("%02X%02X%02X", r, g, b)
-                                    if (themeId != ThemeId.CUSTOM) {
-                                        viewModel.setThemeId(ThemeId.CUSTOM)
-                                    }
-                                    viewModel.setCustomColorHex(newHex)
+                                    localColorHex = String.format("%02X%02X%02X", r, g, b)
+                                },
+                                onHueChangeFinished = { finalHue ->
+                                    val rgbInt = android.graphics.Color.HSVToColor(floatArrayOf(finalHue, 0.85f, 0.95f))
+                                    val r = (rgbInt shrink 16) and 0xFF
+                                    val g = (rgbInt shrink 8) and 0xFF
+                                    val b = rgbInt and 0xFF
+                                    val finalHex = String.format("%02X%02X%02X", r, g, b)
+                                    commitHex(finalHex)
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                             )
@@ -451,11 +508,101 @@ fun SettingsScreen(
                             color = colors.textMuted,
                         )
                         val context = LocalContext.current
+                        val filePicker = rememberLauncherForActivityResult(
+                            contract = ActivityResultContracts.GetContent(),
+                        ) { uri ->
+                            if (uri != null) {
+                                importViewModel.startImportFromFile(context, uri)
+                            }
+                        }
+
                         PrimaryButton(
-                            text = "Export Collection JSON",
-                            onClick = { viewModel.exportData(context) },
+                            text = "Export Backup",
+                            onClick = { showExportOptionDialog = true },
                         )
+
+                        TextButton(
+                            onClick = { filePicker.launch("application/json") },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Import Collection JSON", color = colors.accent, fontWeight = FontWeight.Bold)
+                        }
                     }
+                }
+
+                if (showExportOptionDialog) {
+                    val context = LocalContext.current
+                    AlertDialog(
+                        onDismissRequest = { showExportOptionDialog = false },
+                        containerColor = colors.panel,
+                        titleContentColor = colors.text,
+                        textContentColor = colors.text,
+                        title = {
+                            Text(
+                                text = "Export Backup Collection",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        },
+                        text = {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ) {
+                                Text(
+                                    text = "How would you like to export your collection?",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = colors.textMuted,
+                                )
+
+                                Button(
+                                    onClick = {
+                                        showExportOptionDialog = false
+                                        viewModel.exportData(context)
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(48.dp),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = colors.accent,
+                                        contentColor = colors.text,
+                                    ),
+                                ) {
+                                    Text(
+                                        text = "Share Backup File",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                }
+
+                                OutlinedButton(
+                                    onClick = {
+                                        showExportOptionDialog = false
+                                        viewModel.downloadData(context)
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(48.dp),
+                                    shape = RoundedCornerShape(12.dp),
+                                ) {
+                                    Text(
+                                        text = "Save to Downloads",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.text,
+                                    )
+                                }
+                            }
+                        },
+                        confirmButton = {},
+                        dismissButton = {
+                            TextButton(onClick = { showExportOptionDialog = false }) {
+                                Text("Cancel", color = colors.textMuted)
+                            }
+                        },
+                    )
                 }
 
                 // 4. Application Information Card
@@ -484,10 +631,100 @@ fun SettingsScreen(
                     }
                 }
 
+                val importState by importViewModel.state.collectAsStateWithLifecycle()
+                when (val state = importState) {
+                    is ImportResultState.AwaitingMode -> {
+                        ImportModeDialog(
+                            backupData = state.backupData,
+                            onModeSelected = { mode -> importViewModel.selectMode(mode) },
+                            onDismiss = { importViewModel.reset() },
+                        )
+                    }
+
+                    is ImportResultState.Preview -> {
+                        ImportPreviewDialog(
+                            plan = state.plan,
+                            mode = state.mode,
+                            backupData = state.backupData,
+                            onProceed = { importViewModel.proceedFromPreview() },
+                            onCancel = { importViewModel.reset() },
+                        )
+                    }
+
+                    is ImportResultState.ResolvingConflicts -> {
+                        ImportConflictDialog(
+                            plan = state.plan,
+                            resolutions = state.resolutions,
+                            onResolutionChanged = { id, res -> importViewModel.setResolution(id, res) },
+                            onBulkResolution = { res -> importViewModel.setBulkResolution(res) },
+                            onApply = { importViewModel.applyResolvedMerge() },
+                            onCancel = { importViewModel.reset() },
+                        )
+                    }
+
+                    is ImportResultState.Applying -> {
+                        AlertDialog(
+                            onDismissRequest = {},
+                            title = { Text("Importing Data", fontWeight = FontWeight.Bold) },
+                            text = {
+                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    CircularProgressIndicator(color = colors.accent)
+                                    Text("Applying import changes...", color = colors.text)
+                                }
+                            },
+                            confirmButton = {},
+                        )
+                    }
+
+                    is ImportResultState.Done -> {
+                        AlertDialog(
+                            onDismissRequest = { importViewModel.reset() },
+                            title = { Text("Import Complete", fontWeight = FontWeight.Bold, color = colors.success) },
+                            text = {
+                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    val r = state.report
+                                    Text("• Added: ${r.addedLists} lists, ${r.addedGames} games, ${r.addedMemberships} assignments")
+                                    if (r.updatedLists > 0 || r.updatedGames > 0 || r.updatedMemberships > 0) {
+                                        Text("• Updated: ${r.updatedLists} lists, ${r.updatedGames} games, ${r.updatedMemberships} assignments")
+                                    }
+                                    if (r.skippedLists > 0 || r.skippedGames > 0 || r.skippedMemberships > 0) {
+                                        Text("• Up to date: ${r.skippedLists} lists, ${r.skippedGames} games, ${r.skippedMemberships} assignments")
+                                    }
+                                    r.snapshotPath?.let { path ->
+                                        Text("• Safety snapshot saved to:\n$path", style = MaterialTheme.typography.bodySmall, color = colors.textMuted)
+                                    }
+                                }
+                            },
+                            confirmButton = {
+                                Button(
+                                    onClick = { importViewModel.reset() },
+                                    colors = ButtonDefaults.buttonColors(containerColor = colors.accent, contentColor = colors.text),
+                                ) {
+                                    Text("Done")
+                                }
+                            },
+                        )
+                    }
+
+                    is ImportResultState.Error -> {
+                        AlertDialog(
+                            onDismissRequest = { importViewModel.reset() },
+                            title = { Text("Import Failed", fontWeight = FontWeight.Bold, color = colors.danger) },
+                            text = { Text(state.message, color = colors.text) },
+                            confirmButton = {
+                                Button(onClick = { importViewModel.reset() }) {
+                                    Text("OK")
+                                }
+                            },
+                        )
+                    }
+
+                    else -> {}
+                }
+
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }
-    }
 }
 
 @Composable
@@ -495,6 +732,7 @@ fun RainbowHueSlider(
     hue: Float,
     selectedColor: Color,
     onHueChange: (Float) -> Unit,
+    onHueChangeFinished: (Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val spectrumColors = remember {
@@ -525,24 +763,32 @@ fun RainbowHueSlider(
         val normalizedHue = (hue % 360f + 360f) % 360f
         val thumbOffsetPx = thumbRadiusPx + (normalizedHue / 360f) * activeWidthPx
 
-        fun updateHueFromX(xPx: Float) {
+        fun calculateHue(xPx: Float): Float {
             val clampedX = (xPx - thumbRadiusPx).coerceIn(0f, activeWidthPx)
-            val newHue = (clampedX / activeWidthPx) * 360f
-            onHueChange(newHue)
+            return (clampedX / activeWidthPx) * 360f
         }
 
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .pointerInput(Unit) {
-                    detectTapGestures { offset ->
-                        updateHueFromX(offset.x)
-                    }
-                }
-                .pointerInput(Unit) {
-                    detectDragGestures { change, _ ->
-                        change.consume()
-                        updateHueFromX(change.position.x)
+                .pointerInput(onHueChange, onHueChangeFinished) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        var lastHue = calculateHue(down.position.x)
+                        onHueChange(lastHue)
+
+                        val pointer = down.id
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull { it.id == pointer } ?: break
+                            if (!change.pressed) {
+                                onHueChangeFinished(lastHue)
+                                break
+                            }
+                            change.consume()
+                            lastHue = calculateHue(change.position.x)
+                            onHueChange(lastHue)
+                        }
                     }
                 },
             contentAlignment = Alignment.CenterStart,

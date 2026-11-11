@@ -21,6 +21,7 @@ interface SettingsRepository {
     // Export functionality
     suspend fun exportData(): Result<ExportData>
     suspend fun shareExportedData(exportedData: ExportData): Result<Uri>
+    suspend fun downloadExportedData(exportedData: ExportData): Result<String>
     
     // Import functionality
     suspend fun importData(jsonString: String): Result<Unit>

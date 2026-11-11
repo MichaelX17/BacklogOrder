@@ -35,11 +35,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,6 +60,7 @@ import com.backlogorder.domain.model.ListEntry
 import com.backlogorder.domain.model.NewGame
 import com.backlogorder.domain.repository.GamesRepository
 import com.backlogorder.domain.repository.ListsRepository
+import com.backlogorder.ui.common.FranchiseAutocompleteField
 import com.backlogorder.ui.common.InteractiveCropDialog
 import com.backlogorder.ui.hud.BevelFrame
 import com.backlogorder.ui.hud.BevelImage
@@ -321,8 +322,8 @@ fun ManualGameScreen(
         )
     },
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val existingFranchises by viewModel.existingFranchises.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val existingFranchises by viewModel.existingFranchises.collectAsStateWithLifecycle()
     val listIdError = uiState.listIdError
     val savedMessage = uiState.savedMessage
     var pendingCropUri by remember { mutableStateOf<Uri?>(null) }
@@ -341,12 +342,11 @@ fun ManualGameScreen(
         }
     }
 
-    BacklogTheme {
-        val colors = LocalHudColors.current
-        Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .imePadding(),
+    val colors = LocalHudColors.current
+    Surface(
+        modifier = Modifier
+            .fillMaxSize()
+            .imePadding(),
             color = colors.background,
         ) {
             Column(
@@ -554,88 +554,9 @@ fun ManualGameScreen(
                 },
             )
         }
-    }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun FranchiseAutocompleteField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    existingFranchises: List<String>,
-    modifier: Modifier = Modifier,
-) {
-    val colors = LocalHudColors.current
-    var expanded by remember { mutableStateOf(false) }
 
-    val filteredFranchises = remember(value, existingFranchises) {
-        if (value.isBlank()) {
-            existingFranchises
-        } else {
-            existingFranchises.filter { it.contains(value, ignoreCase = true) }
-        }
-    }
-
-    ExposedDropdownMenuBox(
-        expanded = expanded && filteredFranchises.isNotEmpty(),
-        onExpandedChange = { expanded = it },
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        OutlinedTextField(
-            value = value,
-            onValueChange = {
-                onValueChange(it)
-                expanded = true
-            },
-            label = {
-                Text(
-                    text = "Franchise Name (Optional)",
-                    color = colors.textMuted,
-                    maxLines = 1,
-                    softWrap = false,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            },
-            singleLine = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor(androidx.compose.material3.ExposedDropdownMenuAnchorType.PrimaryEditable),
-            shape = RoundedCornerShape(14.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-                focusedBorderColor = colors.accent,
-                unfocusedBorderColor = colors.textMuted.copy(alpha = 0.35f),
-                focusedTextColor = colors.text,
-                unfocusedTextColor = colors.text,
-            ),
-        )
-
-        if (filteredFranchises.isNotEmpty()) {
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                containerColor = colors.panel,
-            ) {
-                filteredFranchises.forEach { franchise ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = franchise,
-                                color = colors.text,
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                        },
-                        onClick = {
-                            onValueChange(franchise)
-                            expanded = false
-                        },
-                    )
-                }
-            }
-        }
-    }
-}
 
 @Composable
 private fun LabeledField(

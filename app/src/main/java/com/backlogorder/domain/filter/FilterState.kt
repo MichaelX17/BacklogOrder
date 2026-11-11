@@ -11,4 +11,14 @@ data class FilterState(
     val scoreMin: Double? = null,
     val scoreMax: Double? = null,
     val statuses: Set<GameStatus> = emptySet(),
-)
+) {
+    val isActive: Boolean
+        get() = name.isNotBlank() ||
+            playtimeMin != null ||
+            playtimeMax != null ||
+            ratingMin != null ||
+            ratingMax != null ||
+            scoreMin != null ||
+            scoreMax != null ||
+            statuses.isNotEmpty()
+}

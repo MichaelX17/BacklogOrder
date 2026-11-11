@@ -40,5 +40,6 @@ class RoomListsRepository(
 
     override suspend fun deleteList(id: String) {
         database.listDao().deleteList(id)
+        database.gamesDao().deleteOrphanGames()
     }
 }

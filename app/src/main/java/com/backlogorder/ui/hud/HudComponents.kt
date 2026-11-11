@@ -41,8 +41,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
+import com.backlogorder.data.local.GameEntity
+import com.backlogorder.domain.model.Game
 import com.backlogorder.domain.model.GameStatus
 import com.backlogorder.domain.score.ScoreCalculator
+import com.backlogorder.ui.common.GameCoverImage
 import com.backlogorder.ui.theme.LocalHudColors
 import java.util.Locale
 
@@ -153,22 +156,56 @@ fun HexShape(
 
 @Composable
 fun BevelImage(
+    game: Game,
+    contentDescription: String?,
+    modifier: Modifier = Modifier,
+    contentScale: ContentScale = ContentScale.Crop,
+) {
+    GameCoverImage(
+        game = game,
+        modifier = modifier,
+        contentScale = contentScale,
+    )
+}
+
+@Composable
+fun BevelImage(
+    game: GameEntity,
+    contentDescription: String?,
+    modifier: Modifier = Modifier,
+    contentScale: ContentScale = ContentScale.Crop,
+) {
+    GameCoverImage(
+        game = game,
+        modifier = modifier,
+        contentScale = contentScale,
+    )
+}
+
+@Composable
+fun BevelImage(
     model: Any,
     contentDescription: String?,
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Crop,
 ) {
-    val context = LocalContext.current
-    AsyncImage(
-        model = ImageRequest.Builder(context)
-            .data(model)
-            .build(),
-        contentDescription = contentDescription,
-        contentScale = contentScale,
-        modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant),
-    )
+    when (model) {
+        is Game -> BevelImage(game = model, contentDescription = contentDescription, modifier = modifier, contentScale = contentScale)
+        is GameEntity -> BevelImage(game = model, contentDescription = contentDescription, modifier = modifier, contentScale = contentScale)
+        else -> {
+            val context = LocalContext.current
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(model)
+                    .build(),
+                contentDescription = contentDescription,
+                contentScale = contentScale,
+                modifier = modifier
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+            )
+        }
+    }
 }
 
 @Composable
@@ -403,6 +440,7 @@ fun GameCard(
     score: Double? = null,
     meta: String = "",
     imageUrl: String? = null,
+    game: Game? = null,
     onClick: (() -> Unit)? = null,
     backgroundColor: Color? = null,
     modifier: Modifier = Modifier,
@@ -420,7 +458,14 @@ fun GameCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            if (!imageUrl.isNullOrBlank()) {
+            if (game != null) {
+                GameCoverImage(
+                    game = game,
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(12.dp)),
+                )
+            } else if (!imageUrl.isNullOrBlank()) {
                 BevelImage(
                     model = imageUrl,
                     contentDescription = title,
@@ -429,8 +474,19 @@ fun GameCard(
                         .clip(RoundedCornerShape(12.dp)),
                 )
             } else {
-                HexShape(modifier = Modifier.size(56.dp), color = colors.accent.copy(alpha = 0.2f)) {
-                    Text(text = title.firstOrNull()?.uppercaseChar()?.toString() ?: "?", color = colors.text)
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(colors.accent.copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = title.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                        color = colors.text,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
                 }
             }
             Column(modifier = Modifier.weight(1f)) {

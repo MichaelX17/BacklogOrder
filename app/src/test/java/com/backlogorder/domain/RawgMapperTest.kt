@@ -25,7 +25,8 @@ class RawgMapperTest {
 
         assertEquals(42, mapped.rawgId)
         assertEquals("Portal 2", mapped.name)
-        assertEquals("https://image.url", mapped.backgroundImage)
+        assertEquals(null, mapped.backgroundImage)
+        assertEquals("https://image.url", mapped.backgroundImageUrl)
         assertEquals(95, mapped.metacritic)
         assertEquals(4.8, mapped.rating ?: 0.0, 0.0001)
         assertEquals(6.0, mapped.playtimeHours ?: 0.0, 0.0001)

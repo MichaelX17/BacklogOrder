@@ -8,7 +8,8 @@ object RawgMapper {
         return NewGame(
             rawgId = rawgGame.rawgId,
             name = rawgGame.name,
-            backgroundImage = rawgGame.backgroundImage,
+            backgroundImage = null,
+            backgroundImageUrl = rawgGame.backgroundImage,
             metacritic = rawgGame.metacritic,
             rating = rawgGame.rating,
             playtimeHours = rawgGame.playtimeHours,

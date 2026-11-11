@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
@@ -29,11 +29,11 @@ data class HudColors(
     val danger: Color,
 )
 
-val LocalThemeId = staticCompositionLocalOf<ThemeId?> { null }
-val LocalIsDarkMode = staticCompositionLocalOf { true }
-val LocalCustomColorHex = staticCompositionLocalOf { "7045F5" }
+val LocalThemeId = compositionLocalOf<ThemeId?> { null }
+val LocalIsDarkMode = compositionLocalOf { true }
+val LocalCustomColorHex = compositionLocalOf { "7045F5" }
 
-val LocalHudColors = staticCompositionLocalOf {
+val LocalHudColors = compositionLocalOf {
     HudColors(
         accent = VioletPrimary,
         accentSoft = VioletBright,
@@ -57,7 +57,9 @@ fun BacklogTheme(
     content: @Composable () -> Unit,
 ) {
     val activeThemeId = themeId ?: LocalThemeId.current ?: ThemeId.VIOLET
-    val palette = rememberPalette(activeThemeId, darkTheme, customColorHex)
+    val palette = androidx.compose.runtime.remember(activeThemeId, darkTheme, customColorHex) {
+        rememberPalette(activeThemeId, darkTheme, customColorHex)
+    }
     val baseScheme = if (darkTheme) {
         darkColorScheme(
             primary = palette.accent,

@@ -189,4 +189,19 @@ class RoomDataModelTest {
 
         assertEquals(1, database.gamesDao().listGamesFor("list-1").size)
     }
+
+    @Test
+    fun addGameToList_withContext_handlesCoverStorage() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val repoWithContext = RoomGamesRepository(database, context = context)
+        val list = listsRepository.createList("Cover Test")
+
+        val entryLocal = repoWithContext.addGameToList(
+            list.id,
+            NewGame(name = "Local Cover Game", backgroundImage = "/local/path/cover.jpg", isManual = true),
+            GameStatus.BACKLOG,
+        )
+
+        assertEquals("/local/path/cover.jpg", entryLocal.game.backgroundImage)
+    }
 }

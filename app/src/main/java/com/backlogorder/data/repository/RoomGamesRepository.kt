@@ -12,6 +12,8 @@ import com.backlogorder.domain.model.GameStatus
 import com.backlogorder.domain.model.ListEntry
 import com.backlogorder.domain.model.NewGame
 import com.backlogorder.domain.repository.GamesRepository
+import android.content.Context
+import com.backlogorder.util.CoverImageDownloader
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -20,13 +22,15 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.util.UUID
 
-class RoomGamesRepository(
+open class RoomGamesRepository(
     private val database: BacklogOrderDatabase,
+    private val context: Context? = null,
     private val clock: () -> Long = { System.currentTimeMillis() },
 ) : GamesRepository {
 
     private val listConverter = StringListConverter()
     private val json = Json { ignoreUnknownKeys = true }
+    private val coverDownloader: CoverImageDownloader? = context?.let { CoverImageDownloader(it) }
 
     override fun observeEntriesForList(listId: String): Flow<List<ListEntry>> =
         database.gamesDao().observeEntriesForList(listId).map { entries ->
@@ -38,10 +42,29 @@ class RoomGamesRepository(
             resolveEntries(entries)
         }
 
+    open suspend fun getGameById(gameId: String): GameEntity? = database.gamesDao().getGameById(gameId)
+
+    open suspend fun updateCoverFields(gameId: String, localPath: String?, url: String?) {
+        database.gamesDao().updateCoverFields(gameId, localPath, url)
+    }
+
     @Transaction
     override suspend fun addGameToList(listId: String, game: NewGame, status: GameStatus): ListEntry {
         val existingGame = findMatchingGame(game)
-        val gameId = existingGame?.id ?: createGame(game)
+        val gameId = if (existingGame != null) {
+            val remoteUrl = existingGame.backgroundImageUrl
+            if (remoteUrl != null && existingGame.backgroundImage == null && coverDownloader != null) {
+                val downloadRes = coverDownloader.download(existingGame.id, remoteUrl)
+                if (downloadRes.isSuccess) {
+                    val localPath = downloadRes.getOrNull()
+                    database.gamesDao().updateCoverFields(existingGame.id, localPath, remoteUrl)
+                }
+            }
+            existingGame.id
+        } else {
+            createGame(game)
+        }
+
         val existingEntry = database.gamesDao().findListGame(listId, gameId)
         if (existingEntry != null) {
             database.gamesDao().updateStatus(listId, gameId, status.name)
@@ -66,6 +89,7 @@ class RoomGamesRepository(
 
     override suspend fun removeGameFromList(listId: String, gameId: String) {
         database.gamesDao().removeGameFromList(listId, gameId)
+        database.gamesDao().deleteOrphanGames()
     }
 
     override suspend fun updateStatus(listId: String, gameId: String, status: GameStatus) {
@@ -73,12 +97,23 @@ class RoomGamesRepository(
     }
 
     override suspend fun updateGame(game: Game) {
+        val remoteUrl = game.backgroundImageUrl ?: if (game.backgroundImage?.startsWith("http", ignoreCase = true) == true) game.backgroundImage else null
+        val initialLocalPath = if (game.backgroundImage?.startsWith("http", ignoreCase = true) == false) game.backgroundImage else null
+
+        val localCoverPath = if (remoteUrl != null && coverDownloader != null) {
+            val res = coverDownloader.download(game.id, remoteUrl)
+            if (res.isSuccess) res.getOrNull() else initialLocalPath
+        } else {
+            initialLocalPath
+        }
+
         database.gamesDao().upsertGame(
             GameEntity(
                 id = game.id,
                 rawgId = game.rawgId,
                 name = game.name,
-                backgroundImage = game.backgroundImage,
+                backgroundImage = localCoverPath,
+                backgroundImageUrl = remoteUrl,
                 metacritic = game.metacritic,
                 rating = game.rating,
                 playtimeHours = game.playtimeHours,
@@ -164,11 +199,23 @@ class RoomGamesRepository(
     private suspend fun createGame(game: NewGame): String {
         val id = UUID.randomUUID().toString()
         val createdAt = clock()
+
+        val remoteUrl = game.backgroundImageUrl ?: if (game.backgroundImage?.startsWith("http", ignoreCase = true) == true) game.backgroundImage else null
+        val initialLocalPath = if (game.backgroundImage?.startsWith("http", ignoreCase = true) == false) game.backgroundImage else null
+
+        val localCoverPath = if (remoteUrl != null && coverDownloader != null) {
+            val res = coverDownloader.download(id, remoteUrl)
+            if (res.isSuccess) res.getOrNull() else initialLocalPath
+        } else {
+            initialLocalPath
+        }
+
         val entity = GameEntity(
             id = id,
             rawgId = game.rawgId,
             name = game.name,
-            backgroundImage = game.backgroundImage,
+            backgroundImage = localCoverPath,
+            backgroundImageUrl = remoteUrl,
             metacritic = game.metacritic,
             rating = game.rating,
             playtimeHours = game.playtimeHours,

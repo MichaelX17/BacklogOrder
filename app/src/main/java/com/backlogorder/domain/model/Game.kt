@@ -5,6 +5,7 @@ data class Game(
     val rawgId: Int? = null,
     val name: String,
     val backgroundImage: String? = null,
+    val backgroundImageUrl: String? = null,
     val metacritic: Int? = null,
     val rating: Double? = null,
     val playtimeHours: Double? = null,

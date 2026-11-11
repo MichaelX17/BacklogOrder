@@ -1,7 +1,6 @@
 package com.backlogorder.di
 
 import android.content.Context
-import androidx.room.Room
 import com.backlogorder.data.local.BacklogOrderDatabase
 import com.backlogorder.data.remote.RawgApiFactory
 import com.backlogorder.data.remote.RawgApiService
@@ -14,12 +13,21 @@ import com.backlogorder.domain.repository.ApiKeyProvider
 import com.backlogorder.domain.repository.GamesRepository
 import com.backlogorder.domain.repository.ListsRepository
 import com.backlogorder.domain.repository.SettingsRepository
+import com.backlogorder.util.CoverImageDownloader
+import com.backlogorder.util.CoverRefresher
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import javax.inject.Qualifier
 import javax.inject.Singleton
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class ApplicationScope
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -27,11 +35,7 @@ object AppModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): BacklogOrderDatabase =
-        Room.databaseBuilder(
-            context,
-            BacklogOrderDatabase::class.java,
-            "backlogorder.db",
-        ).build()
+        BacklogOrderDatabase.create(context)
 
     @Provides
     @Singleton
@@ -50,8 +54,11 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideGamesRepository(database: BacklogOrderDatabase): GamesRepository =
-        RoomGamesRepository(database)
+    fun provideGamesRepository(
+        @ApplicationContext context: Context,
+        database: BacklogOrderDatabase,
+    ): GamesRepository =
+        RoomGamesRepository(database, context = context)
 
     @Provides
     @Singleton
@@ -76,4 +83,28 @@ object AppModule {
     @Provides
     @Singleton
     fun provideAppDispatchers(): AppDispatchers = AppDispatchers()
+
+    @Provides
+    @Singleton
+    @ApplicationScope
+    fun provideApplicationScope(dispatchers: AppDispatchers): CoroutineScope =
+        CoroutineScope(SupervisorJob() + dispatchers.io)
+
+    @Provides
+    @Singleton
+    fun provideCoverImageDownloader(@ApplicationContext context: Context): CoverImageDownloader =
+        CoverImageDownloader(context)
+
+    @Provides
+    @Singleton
+    fun provideCoverRefresher(
+        downloader: CoverImageDownloader,
+        gamesRepository: GamesRepository,
+        @ApplicationScope scope: CoroutineScope,
+    ): CoverRefresher =
+        CoverRefresher(
+            downloader = downloader,
+            gamesRepository = gamesRepository as RoomGamesRepository,
+            scope = scope,
+        )
 }

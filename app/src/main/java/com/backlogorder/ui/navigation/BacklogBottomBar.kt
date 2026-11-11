@@ -14,6 +14,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.backlogorder.ui.theme.LocalHudColors
 
+import androidx.compose.runtime.remember
+
 sealed class BottomNavDestination(
     val route: String,
     val title: String,
@@ -47,12 +49,14 @@ fun BacklogBottomBar(
     onNavigate: (String) -> Unit,
 ) {
     val colors = LocalHudColors.current
-    val items = listOf(
-        BottomNavDestination.Home,
-        BottomNavDestination.Lists,
-        BottomNavDestination.Games,
-        BottomNavDestination.Settings,
-    )
+    val items = remember {
+        listOf(
+            BottomNavDestination.Home,
+            BottomNavDestination.Lists,
+            BottomNavDestination.Games,
+            BottomNavDestination.Settings,
+        )
+    }
 
     NavigationBar(
         containerColor = colors.panel,

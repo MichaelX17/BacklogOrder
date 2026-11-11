@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
@@ -91,6 +92,7 @@ fun InteractiveCropDialog(
     var scale by remember { mutableFloatStateOf(1f) }
     var offsetX by remember { mutableFloatStateOf(0f) }
     var offsetY by remember { mutableFloatStateOf(0f) }
+    var squareSizePx by remember { mutableFloatStateOf(1f) }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -131,10 +133,9 @@ fun InteractiveCropDialog(
                                 scale = scale,
                                 offsetX = offsetX,
                                 offsetY = offsetY,
+                                squareSizePx = squareSizePx,
                             )
-                            if (croppedPath != null) {
-                                onCropConfirmed(croppedPath)
-                            }
+                            croppedPath?.let { onCropConfirmed(it) }
                             onDismiss()
                         },
                     ) {
@@ -151,18 +152,25 @@ fun InteractiveCropDialog(
                 ) {
                     val viewportWidthPx = constraints.maxWidth.toFloat()
                     val viewportHeightPx = constraints.maxHeight.toFloat()
-                    val squareSizePx = minOf(viewportWidthPx, viewportHeightPx) * 0.85f
+                    val calculatedSquareSize = minOf(viewportWidthPx, viewportHeightPx) * 0.85f
+                    squareSizePx = calculatedSquareSize
 
+                    val minDim = minOf(bitmap.width, bitmap.height).toFloat().coerceAtLeast(1f)
                     val transformableState = rememberTransformableState { zoomChange, offsetChange, _ ->
                         scale = (scale * zoomChange).coerceIn(1f, 5f)
-                        val maxOffset = (squareSizePx * (scale - 1f)) / 2f
-                        offsetX = (offsetX + offsetChange.x).coerceIn(-maxOffset, maxOffset)
-                        offsetY = (offsetY + offsetChange.y).coerceIn(-maxOffset, maxOffset)
+                        val maxOffsetX = (calculatedSquareSize / 2f) * ((bitmap.width.toFloat() * scale / minDim) - 1f)
+                        val maxOffsetY = (calculatedSquareSize / 2f) * ((bitmap.height.toFloat() * scale / minDim) - 1f)
+                        offsetX = (offsetX + offsetChange.x).coerceIn(-maxOffsetX, maxOffsetX)
+                        offsetY = (offsetY + offsetChange.y).coerceIn(-maxOffsetY, maxOffsetY)
                     }
+
+                    val density = LocalDensity.current
+                    val imageWidthDp = with(density) { (calculatedSquareSize * (bitmap.width.toFloat() / minDim)).toDp() }
+                    val imageHeightDp = with(density) { (calculatedSquareSize * (bitmap.height.toFloat() / minDim)).toDp() }
 
                     Box(
                         modifier = Modifier
-                            .size(with(LocalDensity.current) { squareSizePx.toDp() })
+                            .size(with(density) { calculatedSquareSize.toDp() })
                             .clip(RoundedCornerShape(12.dp))
                             .border(2.dp, Color.White, RoundedCornerShape(12.dp))
                             .transformable(state = transformableState),
@@ -171,9 +179,9 @@ fun InteractiveCropDialog(
                         Image(
                             bitmap = bitmap.asImageBitmap(),
                             contentDescription = "Crop target",
-                            contentScale = ContentScale.Crop,
+                            contentScale = ContentScale.FillBounds,
                             modifier = Modifier
-                                .fillMaxSize()
+                                .requiredSize(imageWidthDp, imageHeightDp)
                                 .graphicsLayer(
                                     scaleX = scale,
                                     scaleY = scale,
@@ -195,25 +203,25 @@ fun InteractiveCropDialog(
     }
 }
 
-private fun performBitmapCrop(
+internal fun performBitmapCrop(
     context: Context,
     bitmap: Bitmap,
     scale: Float,
     offsetX: Float,
     offsetY: Float,
+    squareSizePx: Float,
 ): String? {
     return try {
         val minDim = minOf(bitmap.width, bitmap.height)
         val scaledDim = (minDim / scale).toInt().coerceIn(1, minDim)
 
-        val normalizedOffsetX = (-offsetX / scale).toInt()
-        val normalizedOffsetY = (-offsetY / scale).toInt()
+        val safeSquareSize = if (squareSizePx > 0f) squareSizePx else 1f
 
-        val baseX = (bitmap.width - scaledDim) / 2 + normalizedOffsetX
-        val baseY = (bitmap.height - scaledDim) / 2 + normalizedOffsetY
+        val cropXFloat = (bitmap.width - (minDim / scale)) / 2f - (offsetX / scale) * (minDim / safeSquareSize)
+        val cropYFloat = (bitmap.height - (minDim / scale)) / 2f - (offsetY / scale) * (minDim / safeSquareSize)
 
-        val cropX = baseX.coerceIn(0, (bitmap.width - scaledDim).coerceAtLeast(0))
-        val cropY = baseY.coerceIn(0, (bitmap.height - scaledDim).coerceAtLeast(0))
+        val cropX = cropXFloat.toInt().coerceIn(0, (bitmap.width - scaledDim).coerceAtLeast(0))
+        val cropY = cropYFloat.toInt().coerceIn(0, (bitmap.height - scaledDim).coerceAtLeast(0))
 
         val croppedBitmap = Bitmap.createBitmap(bitmap, cropX, cropY, scaledDim, scaledDim)
         val finalBitmap = Bitmap.createScaledBitmap(croppedBitmap, 512, 512, true)
@@ -225,7 +233,7 @@ private fun performBitmapCrop(
         }
 
         Uri.fromFile(coverFile).toString()
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         null
     }
 }

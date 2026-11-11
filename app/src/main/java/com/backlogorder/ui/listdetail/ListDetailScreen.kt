@@ -9,7 +9,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.unit.dp
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -22,11 +30,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,6 +45,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.backlogorder.BacklogOrderApplication
+import com.backlogorder.domain.filter.FilterState
 import com.backlogorder.domain.model.Game
 import com.backlogorder.domain.model.GameList
 import com.backlogorder.domain.model.GameStatus
@@ -45,6 +54,7 @@ import com.backlogorder.domain.model.NewGame
 import com.backlogorder.domain.repository.GamesRepository
 import com.backlogorder.ui.games.GamesHeader
 import com.backlogorder.domain.repository.ListsRepository
+import com.backlogorder.ui.common.FilterSheet
 import com.backlogorder.domain.score.ScoreCalculator
 import com.backlogorder.domain.sort.FranchiseGroup
 import com.backlogorder.domain.sort.FranchiseSorter
@@ -104,13 +114,6 @@ private object EmptyListsRepository : ListsRepository {
     override suspend fun deleteList(id: String) = Unit
 }
 
-data class FilterState(
-    val name: String = "",
-    val statuses: Set<GameStatus> = emptySet(),
-) {
-    val isActive: Boolean get() = name.isNotBlank() || statuses.isNotEmpty()
-}
-
 data class ListDetailUiState(
     val listId: String = "",
     val listName: String = "",
@@ -139,24 +142,36 @@ class ListDetailViewModel(
             ) { lists, entries ->
                 val matchingList = lists.firstOrNull { it.id == listId }
                 val scoreMap = entries.associate { entry -> entry.id to ScoreCalculator.computeScore(entry.game) }
-                val filter = _uiState.value.filter
-                val filteredEntries = entries.filter { entry ->
-                    val matchesName = filter.name.isBlank() || entry.game.name.contains(filter.name, ignoreCase = true)
-                    val matchesStatus = filter.statuses.isEmpty() || entry.status in filter.statuses
-                    matchesName && matchesStatus
-                }
-                val groups = FranchiseSorter.sort(filteredEntries)
-                _uiState.value = _uiState.value.copy(
-                    listName = matchingList?.name ?: _uiState.value.listName,
-                    entries = entries,
-                    scoreMap = scoreMap,
-                    filteredEntries = filteredEntries,
-                    groups = groups,
-                    isLoading = false,
-                    errorMessage = null,
-                )
+                updateStateWithEntries(matchingList?.name, entries, scoreMap, _uiState.value.filter)
             }.collect { }
         }
+    }
+
+    private fun updateStateWithEntries(
+        listName: String?,
+        entries: List<ListEntry>,
+        scoreMap: Map<String, Double?>,
+        filter: FilterState,
+    ) {
+        val allGroups = FranchiseSorter.sort(entries)
+        val filteredGroups = allGroups.filter { group ->
+            group.entries.any { entry ->
+                val matchesName = filter.name.isBlank() || entry.game.name.contains(filter.name, ignoreCase = true)
+                val matchesStatus = filter.statuses.isEmpty() || entry.status in filter.statuses
+                matchesName && matchesStatus
+            }
+        }
+        val filteredEntries = filteredGroups.flatMap { it.entries }
+        _uiState.value = _uiState.value.copy(
+            listName = listName ?: _uiState.value.listName,
+            entries = entries,
+            scoreMap = scoreMap,
+            filter = filter,
+            filteredEntries = filteredEntries,
+            groups = filteredGroups,
+            isLoading = false,
+            errorMessage = null,
+        )
     }
 
     fun renameList(newName: String) {
@@ -170,49 +185,16 @@ class ListDetailViewModel(
 
     fun updateNameFilter(value: String) {
         val newFilter = _uiState.value.filter.copy(name = value)
-        val entries = _uiState.value.entries
-        val filteredEntries = entries.filter { entry ->
-            val matchesName = newFilter.name.isBlank() || entry.game.name.contains(newFilter.name, ignoreCase = true)
-            val matchesStatus = newFilter.statuses.isEmpty() || entry.status in newFilter.statuses
-            matchesName && matchesStatus
-        }
-        val groups = FranchiseSorter.sort(filteredEntries)
-        _uiState.value = _uiState.value.copy(
-            filter = newFilter,
-            filteredEntries = filteredEntries,
-            groups = groups,
-        )
+        updateStateWithEntries(null, _uiState.value.entries, _uiState.value.scoreMap, newFilter)
     }
 
     fun updateFilter(newFilter: FilterState) {
-        val entries = _uiState.value.entries
-        val filteredEntries = entries.filter { entry ->
-            val matchesName = newFilter.name.isBlank() || entry.game.name.contains(newFilter.name, ignoreCase = true)
-            val matchesStatus = newFilter.statuses.isEmpty() || entry.status in newFilter.statuses
-            matchesName && matchesStatus
-        }
-        val groups = FranchiseSorter.sort(filteredEntries)
-        _uiState.value = _uiState.value.copy(
-            filter = newFilter,
-            filteredEntries = filteredEntries,
-            groups = groups,
-        )
+        updateStateWithEntries(null, _uiState.value.entries, _uiState.value.scoreMap, newFilter)
     }
 
     fun clearFilters() {
         val newFilter = FilterState()
-        val entries = _uiState.value.entries
-        val filteredEntries = entries.filter { entry ->
-            val matchesName = newFilter.name.isBlank() || entry.game.name.contains(newFilter.name, ignoreCase = true)
-            val matchesStatus = newFilter.statuses.isEmpty() || entry.status in newFilter.statuses
-            matchesName && matchesStatus
-        }
-        val groups = FranchiseSorter.sort(filteredEntries)
-        _uiState.value = _uiState.value.copy(
-            filter = newFilter,
-            filteredEntries = filteredEntries,
-            groups = groups,
-        )
+        updateStateWithEntries(null, _uiState.value.entries, _uiState.value.scoreMap, newFilter)
     }
 
     fun onStatusToggled(status: GameStatus) {
@@ -220,12 +202,12 @@ class ListDetailViewModel(
         if (!currentStatuses.add(status)) {
             currentStatuses.remove(status)
         }
-        _uiState.value = _uiState.value.copy(
-            filter = _uiState.value.filter.copy(statuses = currentStatuses),
-        )
+        val newFilter = _uiState.value.filter.copy(statuses = currentStatuses)
+        updateStateWithEntries(null, _uiState.value.entries, _uiState.value.scoreMap, newFilter)
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListDetailScreen(
     listId: String,
@@ -254,17 +236,29 @@ fun ListDetailScreen(
         )
     },
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showFilterSheet by remember { mutableStateOf(false) }
     var showAddOptionDialog by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
     var renameInput by remember(uiState.listName) { mutableStateOf(uiState.listName) }
+    var isRefreshing by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
-    BacklogTheme {
-        val colors = LocalHudColors.current
-        Surface(
+    val colors = LocalHudColors.current
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = colors.background,
+    ) {
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = {
+                isRefreshing = true
+                coroutineScope.launch {
+                    delay(600)
+                    isRefreshing = false
+                }
+            },
             modifier = Modifier.fillMaxSize(),
-            color = colors.background,
         ) {
             Column(
                 modifier = Modifier
@@ -287,21 +281,31 @@ fun ListDetailScreen(
                 )
 
                 if (uiState.groups.isEmpty()) {
-                    EmptyState(
-                        title = "No Games in this List",
-                        message = "Use the Add Game button to add games from RAWG search or manually.",
+                    androidx.compose.foundation.layout.Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState()),
                     ) {
-                        PrimaryButton(
-                            text = "Add Game",
-                            onClick = { showAddOptionDialog = true },
-                        )
+                        EmptyState(
+                            title = "No Games in this List",
+                            message = "Use the Add Game button to add games from RAWG search or manually.",
+                        ) {
+                            PrimaryButton(
+                                text = "Add Game",
+                                onClick = { showAddOptionDialog = true },
+                            )
+                        }
                     }
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
-                        items(uiState.groups, key = { it.id }) { group ->
+                        items(
+                            items = uiState.groups,
+                            key = { it.id },
+                            contentType = { "franchise_group" },
+                        ) { group ->
                             GroupBlock(
                                 group = group,
                                 scoreMap = uiState.scoreMap,
@@ -327,6 +331,7 @@ fun ListDetailScreen(
                             label = { Text("List Name", color = colors.textMuted) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(14.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = colors.accent,
                                 unfocusedBorderColor = colors.textMuted,
@@ -461,7 +466,7 @@ private fun GroupBlock(
                     status = entry.status,
                     score = score,
                     meta = "Metascore: ${entry.game.metacritic ?: "—"}\nHours: ${entry.game.playtimeHours ?: 0.0}h",
-                    imageUrl = entry.game.backgroundImage,
+                    game = entry.game,
                     onClick = { onGameClick(entry.listId, entry.game.id) },
                     backgroundColor = colors.surface,
                     modifier = Modifier.fillMaxWidth(),
@@ -469,102 +474,4 @@ private fun GroupBlock(
             }
         }
     }
-}
-
-@Composable
-private fun FilterSheet(
-    filter: FilterState,
-    onStatusToggle: (GameStatus) -> Unit,
-    onClear: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val colors = LocalHudColors.current
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = colors.panel,
-        titleContentColor = colors.text,
-        textContentColor = colors.text,
-        title = { Text("Filter Games") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Filter by Game Status:", style = MaterialTheme.typography.titleSmall, color = colors.text)
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        FilterChip(
-                            selected = GameStatus.BACKLOG in filter.statuses,
-                            onClick = { onStatusToggle(GameStatus.BACKLOG) },
-                            label = { Text(GameStatus.BACKLOG.name) },
-                            modifier = Modifier.weight(1f),
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = colors.warning,
-                                selectedLabelColor = colors.text,
-                                containerColor = colors.panel,
-                                labelColor = colors.textMuted,
-                            ),
-                        )
-                        FilterChip(
-                            selected = GameStatus.PLAYING in filter.statuses,
-                            onClick = { onStatusToggle(GameStatus.PLAYING) },
-                            label = { Text(GameStatus.PLAYING.name) },
-                            modifier = Modifier.weight(1f),
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = colors.success,
-                                selectedLabelColor = colors.text,
-                                containerColor = colors.panel,
-                                labelColor = colors.textMuted,
-                            ),
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        FilterChip(
-                            selected = GameStatus.COMPLETED in filter.statuses,
-                            onClick = { onStatusToggle(GameStatus.COMPLETED) },
-                            label = { Text(GameStatus.COMPLETED.name) },
-                            modifier = Modifier.weight(1f),
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = colors.accent,
-                                selectedLabelColor = colors.text,
-                                containerColor = colors.panel,
-                                labelColor = colors.textMuted,
-                            ),
-                        )
-                        FilterChip(
-                            selected = GameStatus.DROPPED in filter.statuses,
-                            onClick = { onStatusToggle(GameStatus.DROPPED) },
-                            label = { Text(GameStatus.DROPPED.name) },
-                            modifier = Modifier.weight(1f),
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = colors.danger,
-                                selectedLabelColor = colors.text,
-                                containerColor = colors.panel,
-                                labelColor = colors.textMuted,
-                            ),
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Apply", color = colors.accent)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = {
-                onClear()
-                onDismiss()
-            }) {
-                Text("Clear All", color = colors.danger)
-            }
-        },
-    )
 }

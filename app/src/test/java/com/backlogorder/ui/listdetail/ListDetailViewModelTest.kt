@@ -1,5 +1,6 @@
 package com.backlogorder.ui.listdetail
 
+import com.backlogorder.domain.filter.FilterState
 import com.backlogorder.domain.model.Game
 import com.backlogorder.domain.model.GameList
 import com.backlogorder.domain.model.GameStatus
@@ -149,6 +150,37 @@ class ListDetailViewModelTest {
         viewModel.clearFilters()
 
         assertEquals(FilterState(), viewModel.uiState.value.filter)
+    }
+
+    @Test
+    fun filterShowsEntireGroupWhenAtLeastOneGameMatchesStatus() = runTest {
+        val entriesFlow = MutableStateFlow(
+            listOf(
+                ListEntry(
+                    id = "1",
+                    listId = "list-1",
+                    game = Game(id = "g-1", name = "Zelda 1", franchiseName = "Zelda"),
+                    status = GameStatus.COMPLETED,
+                ),
+                ListEntry(
+                    id = "2",
+                    listId = "list-1",
+                    game = Game(id = "g-2", name = "Zelda 2", franchiseName = "Zelda"),
+                    status = GameStatus.PLAYING,
+                ),
+            ),
+        )
+        val viewModel = ListDetailViewModel(
+            listId = "list-1",
+            listsRepository = FakeListsRepository(MutableStateFlow(listOf(GameList(id = "list-1", name = "Favorites")))),
+            gamesRepository = FakeGamesRepository(entriesFlow),
+        )
+
+        advanceUntilIdle()
+        viewModel.onStatusToggled(GameStatus.PLAYING)
+
+        assertEquals(1, viewModel.uiState.value.groups.size)
+        assertEquals(2, viewModel.uiState.value.groups[0].entries.size)
     }
 
     @After
