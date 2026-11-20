@@ -2,7 +2,9 @@
 
 **BacklogOrder** is a modern, Cyberpunk/HUD-styled Android application built with **Kotlin** and **Jetpack Compose**. It provides video game enthusiasts with an intuitive, powerful interface to track, rank, organize, rate, and discover games across custom backlog lists, status pipelines, and franchises.
 
----
+| Dashboard | Game |
+| :---: | :---: |
+| <img width="320" alt="Dashboard" src="https://github.com/user-attachments/assets/ef662733-d846-4f2a-9e75-78c1c638d8d2" /> | <img width="320" alt="Game" src="https://github.com/user-attachments/assets/9adce888-b378-425a-8407-8772f2e64602" /> |
 
 ## Features
 
