@@ -17,6 +17,7 @@ object RawgApiFactory {
         val json = Json {
             ignoreUnknownKeys = true
             explicitNulls = false
+            coerceInputValues = true
         }
 
         val client = OkHttpClient.Builder()

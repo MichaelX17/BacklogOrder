@@ -171,9 +171,8 @@ fun ListsScreen(
                             contentType = { "list_item" },
                         ) { list ->
                             BevelFrame(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { onListClick(list.id) },
+                                onClick = { onListClick(list.id) },
+                                modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Row(
                                     modifier = Modifier

@@ -60,22 +60,29 @@ class SearchViewModelTest {
     }
 
     @Test
-    fun addFlowAddsGameToSelectedList() = runTest {
+    fun addFlowAddsGameToMultipleLists() = runTest {
         val entriesFlow = MutableStateFlow<List<ListEntry>>(emptyList())
+        val listsFlow = MutableStateFlow(
+            listOf(
+                GameList("list-1", "Favorites"),
+                GameList("list-2", "Backlog"),
+            )
+        )
         val viewModel = SearchViewModel(
             apiKeyProvider = InMemoryApiKeyProvider("key-1"),
-            listsRepository = FakeListsRepository(MutableStateFlow(listOf(GameList("list-1", "Favorites")))),
+            listsRepository = FakeListsRepository(listsFlow),
             gamesRepository = FakeGamesRepository(entriesFlow),
             searcher = { _, _ -> emptyList() },
         )
 
         viewModel.onGameSelected(RawgGame(rawgId = 99, name = "Portal"))
-        viewModel.onAddToList("list-1")
+        viewModel.onAddToLists(setOf("list-1", "list-2"))
         advanceUntilIdle()
 
-        assertEquals(1, entriesFlow.value.size)
-        assertEquals("Portal", entriesFlow.value.first().game.name)
-        assertEquals(GameStatus.BACKLOG, entriesFlow.value.first().status)
+        assertEquals(2, entriesFlow.value.size)
+        assertEquals("Portal", entriesFlow.value[0].game.name)
+        assertEquals("Portal", entriesFlow.value[1].game.name)
+        assertEquals(setOf("list-1", "list-2"), entriesFlow.value.map { it.listId }.toSet())
     }
 
     @Test

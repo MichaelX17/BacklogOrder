@@ -21,11 +21,24 @@ class ScoreCalculatorTest {
     }
 
     @Test
-    fun `computeScoreReturnsNullWhenMetacriticIsMissing`() {
+    fun `computeScoreFallsBackToRatingTimes20WhenMetacriticIsMissing`() {
         val game = Game(
             id = "2",
             name = "No metacritic",
             rating = 4.8,
+            playtimeHours = 5.0,
+        )
+
+        assertEquals(19.2, ScoreCalculator.computeScore(game) ?: 0.0, 0.0001)
+    }
+
+    @Test
+    fun `computeScoreReturnsNullWhenBothMetacriticAndRatingAreMissing`() {
+        val game = Game(
+            id = "2b",
+            name = "No metacritic or rating",
+            metacritic = null,
+            rating = null,
             playtimeHours = 5.0,
         )
 

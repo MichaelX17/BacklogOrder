@@ -33,11 +33,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material.icons.filled.StarHalf
+import com.backlogorder.domain.model.GameList
+import com.backlogorder.domain.repository.ListsRepository
+import kotlinx.coroutines.flow.emptyFlow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -140,6 +144,19 @@ private object EmptyGamesRepository : GamesRepository {
     override suspend fun setFranchise(gameId: String, name: String?, order: Int?) = Unit
 }
 
+private object EmptyListsRepository : ListsRepository {
+    override fun observeLists(): Flow<List<GameList>> = emptyFlow()
+    override suspend fun createList(name: String): GameList = GameList(id = "", name = name)
+    override suspend fun renameList(id: String, name: String) = Unit
+    override suspend fun deleteList(id: String) = Unit
+}
+
+data class GameListMembership(
+    val listId: String,
+    val listName: String,
+    val status: GameStatus,
+)
+
 data class GameDetailUiState(
     val listId: String = "",
     val gameId: String = "",
@@ -159,11 +176,29 @@ class GameDetailViewModel(
     private val listId: String,
     private val gameId: String,
     private val gamesRepository: GamesRepository = EmptyGamesRepository,
+    private val listsRepository: ListsRepository = EmptyListsRepository,
     private val rawgRemoteDataSource: RawgRemoteDataSource? = null,
     private val apiKeyProvider: ApiKeyProvider? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(GameDetailUiState(listId = listId, gameId = gameId))
     val uiState: StateFlow<GameDetailUiState> = _uiState
+
+    val gameLists: StateFlow<List<GameListMembership>> = combine(
+        gamesRepository.observeAllEntries(),
+        listsRepository.observeLists(),
+    ) { allEntries, lists ->
+        val listNameMap = lists.associate { it.id to it.name }
+        allEntries
+            .filter { it.game.id == gameId }
+            .map { entry ->
+                GameListMembership(
+                    listId = entry.listId,
+                    listName = listNameMap[entry.listId] ?: "Custom List",
+                    status = entry.status,
+                )
+            }
+            .distinctBy { it.listId }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val existingFranchises: StateFlow<List<String>> = gamesRepository.observeAllEntries()
         .map { entries ->
@@ -233,7 +268,7 @@ class GameDetailViewModel(
         }
     }
 
-    fun updateManualGameDetails(
+    fun updateGameDetails(
         name: String,
         metacritic: Int?,
         rating: Double?,
@@ -257,6 +292,13 @@ class GameDetailViewModel(
             gamesRepository.updateGame(updatedGame)
         }
     }
+
+    fun updateManualGameDetails(
+        name: String,
+        metacritic: Int?,
+        rating: Double?,
+        playtimeHours: Double?,
+    ) = updateGameDetails(name, metacritic, rating, playtimeHours)
 
     fun reloadRawgCover() {
         val currentEntry = _uiState.value.entry ?: return
@@ -369,6 +411,7 @@ fun GameDetailScreen(
                             listId = listId,
                             gameId = gameId,
                             gamesRepository = container.gamesRepository,
+                            listsRepository = container.listsRepository,
                             rawgRemoteDataSource = container.rawgRemoteDataSource,
                             apiKeyProvider = container.apiKeyProvider,
                         ) as T
@@ -391,12 +434,12 @@ fun GameDetailScreen(
     var pendingCropUri by remember { mutableStateOf<Uri?>(null) }
     var showFranchiseDialog by remember { mutableStateOf(false) }
     var showFranchiseListDialog by remember { mutableStateOf(false) }
-    var showEditManualGameDialog by remember { mutableStateOf(false) }
+    var showEditGameDialog by remember { mutableStateOf(false) }
 
-    var editManualNameInput by remember(entry) { mutableStateOf(entry?.game?.name ?: "") }
-    var editManualMetacriticInput by remember(entry) { mutableStateOf(entry?.game?.metacritic?.toString() ?: "") }
-    var editManualRatingInput by remember(entry) { mutableStateOf(entry?.game?.rating?.toString() ?: "") }
-    var editManualPlaytimeInput by remember(entry) { mutableStateOf(entry?.game?.playtimeHours?.toString() ?: "") }
+    var editNameInput by remember(entry) { mutableStateOf(entry?.game?.name ?: "") }
+    var editMetacriticInput by remember(entry) { mutableStateOf(entry?.game?.metacritic?.toString() ?: "") }
+    var editRatingInput by remember(entry) { mutableStateOf(entry?.game?.rating?.toString() ?: "") }
+    var editPlaytimeInput by remember(entry) { mutableStateOf(entry?.game?.playtimeHours?.toString() ?: "") }
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
@@ -495,16 +538,12 @@ fun GameDetailScreen(
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = if (entry.game.isManual) {
-                                Modifier.clickable {
-                                    editManualNameInput = entry.game.name
-                                    editManualMetacriticInput = entry.game.metacritic?.toString() ?: ""
-                                    editManualRatingInput = entry.game.rating?.toString() ?: ""
-                                    editManualPlaytimeInput = entry.game.playtimeHours?.toString() ?: ""
-                                    showEditManualGameDialog = true
-                                }
-                            } else {
-                                Modifier
+                            modifier = Modifier.clickable {
+                                editNameInput = entry.game.name
+                                editMetacriticInput = entry.game.metacritic?.toString() ?: ""
+                                editRatingInput = entry.game.rating?.toString() ?: ""
+                                editPlaytimeInput = entry.game.playtimeHours?.toString() ?: ""
+                                showEditGameDialog = true
                             },
                         ) {
                             Text(
@@ -514,14 +553,12 @@ fun GameDetailScreen(
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.weight(1f, fill = false),
                             )
-                            if (entry.game.isManual) {
-                                Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = "Edit Manual Game",
-                                    tint = colors.accent,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                            }
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit Game Details",
+                                tint = colors.accent,
+                                modifier = Modifier.size(18.dp),
+                            )
                         }
 
                         Row(
@@ -596,9 +633,10 @@ fun GameDetailScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
+                            val metascoreVal = ScoreCalculator.effectiveMetacritic(entry.game)
                             MetricColumnCard(
                                 icon = Icons.Default.BarChart,
-                                value = "${entry.game.metacritic ?: "—"}",
+                                value = if (metascoreVal != null) "${metascoreVal.toInt()}" else "—",
                                 label = "Metascore",
                                 modifier = Modifier.weight(1f),
                             )
@@ -642,15 +680,14 @@ fun GameDetailScreen(
 
                 // 2. Franchise Hub Section
                 BevelFrame(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            if (!entry.game.franchiseName.isNullOrBlank()) {
-                                showFranchiseListDialog = true
-                            } else {
-                                showFranchiseDialog = true
-                            }
-                        },
+                    onClick = {
+                        if (!entry.game.franchiseName.isNullOrBlank()) {
+                            showFranchiseListDialog = true
+                        } else {
+                            showFranchiseDialog = true
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
@@ -670,9 +707,7 @@ fun GameDetailScreen(
 
                             // Edit Bubble Button (Only tapping this button opens Edit Modal)
                             Surface(
-                                modifier = Modifier
-                                    .clip(CircleShape)
-                                    .clickable { showFranchiseDialog = true },
+                                onClick = { showFranchiseDialog = true },
                                 color = colors.accent.copy(alpha = 0.18f),
                                 shape = CircleShape,
                             ) {
@@ -752,6 +787,90 @@ fun GameDetailScreen(
                                             fontWeight = FontWeight.ExtraBold,
                                             color = colors.text,
                                         )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 3. Listed In Section (Read-Only Card)
+                val gameLists by viewModel.gameLists.collectAsStateWithLifecycle()
+
+                BevelFrame(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "Listed In",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = colors.text,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+
+                        if (gameLists.isEmpty()) {
+                            Text(
+                                text = "Not listed in any list",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = colors.textMuted,
+                            )
+                        } else {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                gameLists.forEach { item ->
+                                    Surface(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(24.dp),
+                                        color = colors.surface,
+                                        border = BorderStroke(1.dp, colors.accent.copy(alpha = 0.3f)),
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                                modifier = Modifier.weight(1f, fill = false),
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(32.dp)
+                                                        .clip(CircleShape)
+                                                        .background(colors.accent.copy(alpha = 0.2f)),
+                                                    contentAlignment = Alignment.Center,
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.AutoMirrored.Filled.FormatListBulleted,
+                                                        contentDescription = "List",
+                                                        tint = colors.accent,
+                                                        modifier = Modifier.size(18.dp),
+                                                    )
+                                                }
+                                                Text(
+                                                    text = item.listName,
+                                                    style = MaterialTheme.typography.titleSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = colors.text,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                )
+                                            }
+
+                                            StatusBadge(status = item.status)
+                                        }
                                     }
                                 }
                             }
@@ -881,14 +1000,14 @@ fun GameDetailScreen(
                 )
             }
 
-            // Edit Manual Game Details Modal Dialog
-            if (showEditManualGameDialog) {
+            // Edit Game Details Modal Dialog
+            if (showEditGameDialog) {
                 AlertDialog(
-                    onDismissRequest = { showEditManualGameDialog = false },
+                    onDismissRequest = { showEditGameDialog = false },
                     containerColor = colors.panel,
                     titleContentColor = colors.text,
                     textContentColor = colors.text,
-                    title = { Text("Edit Manual Game Data") },
+                    title = { Text("Edit Game Details") },
                     text = {
                         Column(
                             modifier = Modifier
@@ -900,8 +1019,8 @@ fun GameDetailScreen(
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text("Game Title", style = MaterialTheme.typography.bodySmall, color = colors.textMuted)
                                 OutlinedTextField(
-                                    value = editManualNameInput,
-                                    onValueChange = { editManualNameInput = it },
+                                    value = editNameInput,
+                                    onValueChange = { editNameInput = it },
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(14.dp),
@@ -918,8 +1037,8 @@ fun GameDetailScreen(
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text("Metacritic Score (0-100)", style = MaterialTheme.typography.bodySmall, color = colors.textMuted)
                                 OutlinedTextField(
-                                    value = editManualMetacriticInput,
-                                    onValueChange = { editManualMetacriticInput = it },
+                                    value = editMetacriticInput,
+                                    onValueChange = { editMetacriticInput = it },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth(),
@@ -937,8 +1056,8 @@ fun GameDetailScreen(
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text("User Rating (0-5)", style = MaterialTheme.typography.bodySmall, color = colors.textMuted)
                                 OutlinedTextField(
-                                    value = editManualRatingInput,
-                                    onValueChange = { editManualRatingInput = it },
+                                    value = editRatingInput,
+                                    onValueChange = { editRatingInput = it },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth(),
@@ -956,8 +1075,8 @@ fun GameDetailScreen(
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text("Playtime Hours", style = MaterialTheme.typography.bodySmall, color = colors.textMuted)
                                 OutlinedTextField(
-                                    value = editManualPlaytimeInput,
-                                    onValueChange = { editManualPlaytimeInput = it },
+                                    value = editPlaytimeInput,
+                                    onValueChange = { editPlaytimeInput = it },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth(),
@@ -977,13 +1096,13 @@ fun GameDetailScreen(
                     confirmButton = {
                         Button(
                             onClick = {
-                                viewModel.updateManualGameDetails(
-                                    name = editManualNameInput,
-                                    metacritic = editManualMetacriticInput.trim().toIntOrNull(),
-                                    rating = editManualRatingInput.trim().toDoubleOrNull(),
-                                    playtimeHours = editManualPlaytimeInput.trim().toDoubleOrNull(),
+                                viewModel.updateGameDetails(
+                                    name = editNameInput,
+                                    metacritic = editMetacriticInput.trim().toIntOrNull(),
+                                    rating = editRatingInput.trim().toDoubleOrNull(),
+                                    playtimeHours = editPlaytimeInput.trim().toDoubleOrNull(),
                                 )
-                                showEditManualGameDialog = false
+                                showEditGameDialog = false
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = colors.accent, contentColor = colors.text),
                         ) {
@@ -991,7 +1110,7 @@ fun GameDetailScreen(
                         }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showEditManualGameDialog = false }) {
+                        TextButton(onClick = { showEditGameDialog = false }) {
                             Text("Cancel", color = colors.textMuted)
                         }
                     },

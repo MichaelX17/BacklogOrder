@@ -308,9 +308,8 @@ fun HomeScreen(
                     val score = uiState.scoreMap[playingGame.id]
                     val scoreDisplay = ScoreCalculator.scoreDisplay(score, playingGame.game.playtimeHours, true)
                     BevelFrame(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onGameClick(playingGame.listId, playingGame.game.id) },
+                        onClick = { onGameClick(playingGame.listId, playingGame.game.id) },
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
                         Column(
                             modifier = Modifier.fillMaxWidth(),
@@ -341,9 +340,10 @@ fun HomeScreen(
                                         if (playingGame.game.playtimeHours != null && playingGame.game.playtimeHours > 0) {
                                             append("${playingGame.game.playtimeHours.toInt()}h estimated")
                                         }
-                                        if (playingGame.game.metacritic != null) {
+                                        val effectiveScore = ScoreCalculator.effectiveMetacritic(playingGame.game)
+                                        if (effectiveScore != null) {
                                             if (isNotEmpty()) append(" • ")
-                                            append("Metascore ${playingGame.game.metacritic}")
+                                            append("Metascore ${effectiveScore.toInt()}")
                                         }
                                     }
                                     if (metaText.isNotBlank()) {
@@ -441,11 +441,13 @@ fun HomeScreen(
                             uiState.topRankedGames.forEachIndexed { index, entry ->
                                 val score = uiState.scoreMap[entry.id]
                                 val scoreDisplay = ScoreCalculator.scoreDisplay(score, entry.game.playtimeHours, true)
+                                val rowShape = RoundedCornerShape(10.dp)
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .clip(rowShape)
                                         .clickable { onGameClick(entry.listId, entry.game.id) }
-                                        .padding(vertical = 4.dp),
+                                        .padding(horizontal = 8.dp, vertical = 6.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                 ) {
@@ -466,8 +468,10 @@ fun HomeScreen(
                                                 style = MaterialTheme.typography.titleMedium,
                                                 color = colors.text,
                                             )
+                                            val effectiveScore = ScoreCalculator.effectiveMetacritic(entry.game)
+                                            val scoreStr = if (effectiveScore != null) "${effectiveScore.toInt()}" else "—"
                                             Text(
-                                                text = "Metascore ${entry.game.metacritic ?: "—"} • ${entry.game.playtimeHours ?: 0.0}h",
+                                                text = "Metascore $scoreStr • ${entry.game.playtimeHours ?: 0.0}h",
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = colors.textMuted,
                                             )
@@ -599,9 +603,8 @@ fun HomeScreen(
                                 val count = uiState.allEntries.count { it.listId == list.id }
                                 BevelFrame(
                                     backgroundColor = colors.surface,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { onListClick(list.id) },
+                                    onClick = { onListClick(list.id) },
+                                    modifier = Modifier.fillMaxWidth(),
                                 ) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),

@@ -56,7 +56,7 @@ class RawgRemoteDataSource(
 
         return withContext(dispatchers.io) {
             try {
-                val results = apiService.searchGames(normalizedQuery, apiKey).results.map { it.toDomain() }
+                val results = apiService.searchGames(normalizedQuery, apiKey).results?.map { it.toDomain() } ?: emptyList()
                 cache.put(cacheKey, results)
                 results
             } catch (exception: Exception) {

@@ -1,7 +1,6 @@
 package com.backlogorder.ui.hud
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -123,16 +122,33 @@ fun BackIconButton(
 fun BevelFrame(
     modifier: Modifier = Modifier,
     backgroundColor: Color = LocalHudColors.current.panel,
+    onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        color = backgroundColor,
-        shadowElevation = 2.dp,
-    ) {
-        Box(modifier = Modifier.padding(16.dp)) {
-            content()
+    val frameShape = RoundedCornerShape(16.dp)
+    val frameModifier = modifier.clip(frameShape)
+    if (onClick != null) {
+        Surface(
+            onClick = onClick,
+            modifier = frameModifier,
+            shape = frameShape,
+            color = backgroundColor,
+            shadowElevation = 2.dp,
+        ) {
+            Box(modifier = Modifier.padding(16.dp)) {
+                content()
+            }
+        }
+    } else {
+        Surface(
+            modifier = frameModifier,
+            shape = frameShape,
+            color = backgroundColor,
+            shadowElevation = 2.dp,
+        ) {
+            Box(modifier = Modifier.padding(16.dp)) {
+                content()
+            }
         }
     }
 }
@@ -449,9 +465,8 @@ fun GameCard(
     val cardBg = backgroundColor ?: colors.surface
     BevelFrame(
         backgroundColor = cardBg,
-        modifier = modifier
-            .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),

@@ -24,20 +24,20 @@ interface RawgApiService {
 
 @Serializable
 data class RawgSearchResponse(
-    val results: List<RawgGameDto> = emptyList(),
+    val results: List<RawgGameDto>? = null,
 )
 
 @Serializable
 data class RawgGameDto(
-    @SerialName("id") val rawgId: Int,
-    @SerialName("name") val name: String,
+    @SerialName("id") val rawgId: Int = 0,
+    @SerialName("name") val name: String = "",
     @SerialName("background_image") val backgroundImage: String? = null,
     @SerialName("metacritic") val metacritic: Int? = null,
     @SerialName("rating") val rating: Double? = null,
     @SerialName("playtime") val playtimeHours: Double? = null,
-    @SerialName("genres") val genres: List<RawgGenreDto> = emptyList(),
-    @SerialName("platforms") val platforms: List<RawgPlatformWrapperDto> = emptyList(),
-    @SerialName("tags") val tags: List<RawgTagDto> = emptyList(),
+    @SerialName("genres") val genres: List<RawgGenreDto>? = null,
+    @SerialName("platforms") val platforms: List<RawgPlatformWrapperDto>? = null,
+    @SerialName("tags") val tags: List<RawgTagDto>? = null,
 ) {
     fun toDomain(): RawgGame = RawgGame(
         rawgId = rawgId,
@@ -46,9 +46,9 @@ data class RawgGameDto(
         metacritic = metacritic,
         rating = rating,
         playtimeHours = playtimeHours,
-        genres = genres.mapNotNull { it.name },
-        platforms = platforms.mapNotNull { it.platform.name },
-        tags = tags.mapNotNull { it.name },
+        genres = genres?.mapNotNull { it.name } ?: emptyList(),
+        platforms = platforms?.mapNotNull { it.platform?.name } ?: emptyList(),
+        tags = tags?.mapNotNull { it.name } ?: emptyList(),
     )
 }
 
@@ -59,7 +59,7 @@ data class RawgGenreDto(
 
 @Serializable
 data class RawgPlatformWrapperDto(
-    @SerialName("platform") val platform: RawgPlatformDto = RawgPlatformDto(),
+    @SerialName("platform") val platform: RawgPlatformDto? = null,
 )
 
 @Serializable

@@ -461,11 +461,13 @@ private fun GroupBlock(
             }
             group.entries.forEach { entry ->
                 val score = scoreMap[entry.id]
+                val effectiveScore = ScoreCalculator.effectiveMetacritic(entry.game)
+                val scoreStr = if (effectiveScore != null) "${effectiveScore.toInt()}" else "—"
                 GameCard(
                     title = entry.game.name,
                     status = entry.status,
                     score = score,
-                    meta = "Metascore: ${entry.game.metacritic ?: "—"}\nHours: ${entry.game.playtimeHours ?: 0.0}h",
+                    meta = "Metascore: $scoreStr\nHours: ${entry.game.playtimeHours ?: 0.0}h",
                     game = entry.game,
                     onClick = { onGameClick(entry.listId, entry.game.id) },
                     backgroundColor = colors.surface,

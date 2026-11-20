@@ -75,6 +75,43 @@ class RawgRemoteDataSourceTest {
     }
 
     @Test
+    fun searchGames_handlesNullListsInJsonResponse() {
+        runBlocking {
+            server.enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setHeader("Content-Type", "application/json")
+                    .setBody(
+                        """
+                        {
+                          "results": [
+                            {
+                              "id": 16,
+                              "name": "Devil May Cry 3D",
+                              "background_image": null,
+                              "playtime": 0,
+                              "platforms": null,
+                              "genres": null,
+                              "tags": null
+                            }
+                          ]
+                        }
+                        """.trimIndent(),
+                    ),
+            )
+
+            val results = dataSource.searchGames("Devil May Cry", "demo-key")
+
+            assertEquals(1, results.size)
+            assertEquals(16, results[0].rawgId)
+            assertEquals("Devil May Cry 3D", results[0].name)
+            assertTrue(results[0].platforms.isEmpty())
+            assertTrue(results[0].genres.isEmpty())
+            assertTrue(results[0].tags.isEmpty())
+        }
+    }
+
+    @Test
     fun searchGames_mapsHttpStatusesToDomainErrors() {
         runBlocking {
             server.enqueue(MockResponse().setResponseCode(401).setBody("{}"))

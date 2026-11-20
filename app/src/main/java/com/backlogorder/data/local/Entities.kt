@@ -9,6 +9,7 @@ import com.backlogorder.domain.model.Game
 import com.backlogorder.domain.model.GameList
 import com.backlogorder.domain.model.GameStatus
 import com.backlogorder.domain.model.ListEntry
+import com.backlogorder.util.FranchiseExtractor
 
 @Entity(
     tableName = "lists",
@@ -49,24 +50,29 @@ data class GameEntity(
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
 ) {
-    fun toDomain(): Game = Game(
-        id = id,
-        rawgId = rawgId,
-        name = name,
-        backgroundImage = backgroundImage,
-        backgroundImageUrl = backgroundImageUrl,
-        metacritic = metacritic,
-        rating = rating,
-        playtimeHours = playtimeHours,
-        genres = StringListConverter().fromString(genres),
-        platforms = StringListConverter().fromString(platforms),
-        tags = StringListConverter().fromString(tags),
-        isManual = isManual == 1,
-        franchiseName = franchiseName,
-        franchiseOrder = franchiseOrder,
-        createdAt = createdAt,
-        updatedAt = updatedAt,
-    )
+    fun toDomain(): Game {
+        val tagList = StringListConverter().fromString(tags)
+        val computedFranchise = franchiseName.takeIf { !it.isNullOrBlank() }
+            ?: FranchiseExtractor.extractFranchiseName(name, tagList)
+        return Game(
+            id = id,
+            rawgId = rawgId,
+            name = name,
+            backgroundImage = backgroundImage,
+            backgroundImageUrl = backgroundImageUrl,
+            metacritic = metacritic,
+            rating = rating,
+            playtimeHours = playtimeHours,
+            genres = StringListConverter().fromString(genres),
+            platforms = StringListConverter().fromString(platforms),
+            tags = tagList,
+            isManual = isManual == 1,
+            franchiseName = computedFranchise,
+            franchiseOrder = franchiseOrder,
+            createdAt = createdAt,
+            updatedAt = updatedAt,
+        )
+    }
 }
 
 @Entity(

@@ -14,6 +14,7 @@ import com.backlogorder.domain.model.NewGame
 import com.backlogorder.domain.repository.GamesRepository
 import android.content.Context
 import com.backlogorder.util.CoverImageDownloader
+import com.backlogorder.util.FranchiseExtractor
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -210,6 +211,9 @@ open class RoomGamesRepository(
             initialLocalPath
         }
 
+        val franchise = game.franchiseName.takeIf { !it.isNullOrBlank() }
+            ?: FranchiseExtractor.extractFranchiseName(game.name, game.tags)
+
         val entity = GameEntity(
             id = id,
             rawgId = game.rawgId,
@@ -223,7 +227,7 @@ open class RoomGamesRepository(
             platforms = listConverter.toString(game.platforms),
             tags = listConverter.toString(game.tags),
             isManual = if (game.isManual) 1 else 0,
-            franchiseName = game.franchiseName,
+            franchiseName = franchise,
             franchiseOrder = game.franchiseOrder,
             createdAt = createdAt,
             updatedAt = createdAt,

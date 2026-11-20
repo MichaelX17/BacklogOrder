@@ -1,10 +1,10 @@
 package com.backlogorder.ui.search
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,17 +16,25 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,6 +46,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.backlogorder.BacklogOrderApplication
+import com.backlogorder.domain.mapper.RawgMapper
 import com.backlogorder.domain.model.Game
 import com.backlogorder.domain.model.GameList
 import com.backlogorder.domain.model.GameStatus
@@ -47,9 +56,14 @@ import com.backlogorder.domain.model.RawgGame
 import com.backlogorder.domain.repository.ApiKeyProvider
 import com.backlogorder.domain.repository.GamesRepository
 import com.backlogorder.domain.repository.ListsRepository
+import com.backlogorder.domain.score.ScoreCalculator
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextOverflow
 import com.backlogorder.ui.hud.BevelFrame
 import com.backlogorder.ui.hud.BevelImage
 import com.backlogorder.ui.hud.EmptyState
+import com.backlogorder.ui.hud.HexShape
 import com.backlogorder.ui.hud.PrimaryButton
 import com.backlogorder.ui.theme.BacklogTheme
 import com.backlogorder.ui.theme.LocalHudColors
@@ -209,57 +223,53 @@ class SearchViewModel(
     fun onGameSelected(game: RawgGame) {
         val listId = _uiState.value.targetListId
         if (!listId.isNullOrBlank()) {
-            addGameToList(listId, game)
+            _uiState.value = _uiState.value.copy(selectedGame = game)
+            onAddToLists(setOf(listId))
         } else {
             _uiState.value = _uiState.value.copy(selectedGame = game)
         }
-    }
-
-    fun onAddToList(listId: String) {
-        val game = _uiState.value.selectedGame ?: return
-        addGameToList(listId, game)
     }
 
     fun onNewListNameChanged(value: String) {
         _uiState.value = _uiState.value.copy(newListName = value)
     }
 
-    fun createListAndAddSelected() {
-        val name = _uiState.value.newListName.trim()
+    fun onAddToLists(listIds: Set<String>, newListName: String? = null) {
         val game = _uiState.value.selectedGame ?: return
-        if (name.isBlank()) {
-            _uiState.value = _uiState.value.copy(errorMessage = "List name is required.")
-            return
-        }
+        val trimmedNewName = newListName?.trim().orEmpty()
+        if (listIds.isEmpty() && trimmedNewName.isBlank()) return
 
-        viewModelScope.launch {
-            val created = listsRepository.createList(name)
-            addGameToList(created.id, game)
-            _uiState.value = _uiState.value.copy(newListName = "")
-        }
-    }
-
-    private fun addGameToList(listId: String, game: RawgGame) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isAdding = true, errorMessage = null)
-            val newGame = NewGame(
-                rawgId = game.rawgId,
-                name = game.name,
-                backgroundImage = game.backgroundImage,
-                metacritic = game.metacritic,
-                rating = game.rating,
-                playtimeHours = game.playtimeHours,
-                genres = game.genres,
-                platforms = game.platforms,
-                tags = game.tags,
-            )
-            gamesRepository.addGameToList(listId, newGame, GameStatus.BACKLOG)
+            val newGame = RawgMapper.mapRawgGame(game)
+            val targetIds = listIds.toMutableSet()
+
+            if (trimmedNewName.isNotBlank()) {
+                val created = listsRepository.createList(trimmedNewName)
+                targetIds.add(created.id)
+            }
+
+            for (listId in targetIds) {
+                gamesRepository.addGameToList(listId, newGame, GameStatus.BACKLOG)
+            }
+
+            val msg = if (targetIds.size > 1) {
+                "Added \"${game.name}\" to ${targetIds.size} lists."
+            } else {
+                "Added \"${game.name}\" to your list."
+            }
+
             _uiState.value = _uiState.value.copy(
                 isAdding = false,
                 selectedGame = null,
-                statusMessage = "Added \"${game.name}\" to your list.",
+                newListName = "",
+                statusMessage = msg,
             )
         }
+    }
+
+    fun dismissGameSelection() {
+        _uiState.value = _uiState.value.copy(selectedGame = null, newListName = "")
     }
 }
 
@@ -409,81 +419,15 @@ fun SearchScreen(
                 }
 
                 if (selectedGame != null && uiState.targetListId == null) {
-                    BevelFrame(modifier = Modifier.fillMaxWidth()) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            Text(
-                                text = "Add \"${selectedGame.name}\" to a list:",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = colors.text,
-                            )
-                            if (uiState.lists.isEmpty()) {
-                                OutlinedTextField(
-                                    value = uiState.newListName,
-                                    onValueChange = viewModel::onNewListNameChanged,
-                                    label = { Text("New list name", color = colors.textMuted) },
-                                    singleLine = true,
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(14.dp),
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedContainerColor = Color.Transparent,
-                                        unfocusedContainerColor = Color.Transparent,
-                                        focusedBorderColor = colors.accent,
-                                        unfocusedBorderColor = colors.textMuted.copy(alpha = 0.35f),
-                                        focusedTextColor = colors.text,
-                                        unfocusedTextColor = colors.text,
-                                    ),
-                                )
-                                PrimaryButton(
-                                    text = if (uiState.isAdding) "Adding..." else "Create list and add game",
-                                    enabled = !uiState.isAdding && uiState.newListName.isNotBlank(),
-                                    onClick = viewModel::createListAndAddSelected,
-                                )
-                            } else {
-                                uiState.lists.forEach { list ->
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable { viewModel.onAddToList(list.id) }
-                                            .padding(vertical = 6.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        Text(list.name, color = colors.text)
-                                        TextButton(onClick = { viewModel.onAddToList(list.id) }) {
-                                            Text("Add", color = colors.accent)
-                                        }
-                                    }
-                                }
-                                Spacer(modifier = Modifier.height(4.dp))
-                                OutlinedTextField(
-                                    value = uiState.newListName,
-                                    onValueChange = viewModel::onNewListNameChanged,
-                                    label = { Text("Or create a new list", color = colors.textMuted) },
-                                    singleLine = true,
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(14.dp),
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedContainerColor = Color.Transparent,
-                                        unfocusedContainerColor = Color.Transparent,
-                                        focusedBorderColor = colors.accent,
-                                        unfocusedBorderColor = colors.textMuted.copy(alpha = 0.35f),
-                                        focusedTextColor = colors.text,
-                                        unfocusedTextColor = colors.text,
-                                    ),
-                                )
-                                PrimaryButton(
-                                    text = if (uiState.isAdding) "Adding..." else "Create list and add",
-                                    enabled = !uiState.isAdding && uiState.newListName.isNotBlank(),
-                                    onClick = viewModel::createListAndAddSelected,
-                                )
-                            }
-                        }
-                    }
+                    AddGameToListDialog(
+                        game = selectedGame,
+                        lists = uiState.lists,
+                        newListName = uiState.newListName,
+                        isAdding = uiState.isAdding,
+                        onNewListNameChanged = viewModel::onNewListNameChanged,
+                        onAddToLists = viewModel::onAddToLists,
+                        onDismiss = viewModel::dismissGameSelection,
+                    )
                 }
             }
         }
@@ -495,35 +439,225 @@ private fun SearchResultRow(
     onClick: () -> Unit,
 ) {
     val colors = LocalHudColors.current
-    BevelFrame(modifier = Modifier.fillMaxWidth()) {
+    BevelFrame(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onClick)
                 .padding(8.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            game.backgroundImage?.let { url ->
+            if (!game.backgroundImage.isNullOrBlank()) {
                 BevelImage(
-                    model = url,
+                    model = game.backgroundImage,
                     contentDescription = game.name,
                     modifier = Modifier
-                        .height(50.dp)
-                        .padding(end = 4.dp),
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(12.dp)),
                 )
+            } else {
+                HexShape(modifier = Modifier.size(56.dp), color = colors.accent.copy(alpha = 0.2f)) {
+                    Text(
+                        text = game.name.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                        color = colors.text,
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                }
             }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = game.name, style = MaterialTheme.typography.titleMedium, color = colors.text)
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = game.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = colors.text,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 val metaStr = buildString {
-                    if (game.metacritic != null) append("Metacritic: ${game.metacritic} • ")
+                    val effectiveScore = ScoreCalculator.effectiveMetacritic(game.metacritic, game.rating)
+                    if (effectiveScore != null) append("Metacritic: ${effectiveScore.toInt()} • ")
                     if (game.playtimeHours != null && game.playtimeHours > 0) append("${game.playtimeHours.toInt()}h • ")
                     if (game.genres.isNotEmpty()) append(game.genres.take(2).joinToString(", "))
                 }.removeSuffix(" • ")
                 if (metaStr.isNotBlank()) {
-                    Text(text = metaStr, style = MaterialTheme.typography.bodySmall, color = colors.textMuted)
+                    Text(
+                        text = metaStr,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.textMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
         }
     }
+}
+
+@Composable
+private fun AddGameToListDialog(
+    game: RawgGame,
+    lists: List<GameList>,
+    newListName: String,
+    isAdding: Boolean,
+    onNewListNameChanged: (String) -> Unit,
+    onAddToLists: (listIds: Set<String>, newListName: String?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val colors = LocalHudColors.current
+    var selectedListIds by remember(lists) {
+        mutableStateOf(lists.firstOrNull()?.id?.let { setOf(it) } ?: emptySet())
+    }
+    var isCreatingNewList by remember(lists) { mutableStateOf(lists.isEmpty()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = colors.panel,
+        titleContentColor = colors.text,
+        textContentColor = colors.text,
+        title = {
+            Text(
+                text = "Add to Lists",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .imePadding(),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    text = "Select lists for \"${game.name}\":",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.text,
+                )
+
+                if (lists.isNotEmpty()) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        lists.forEach { list ->
+                            val isSelected = list.id in selectedListIds
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(if (isSelected) colors.accent.copy(alpha = 0.15f) else Color.Transparent)
+                                    .clickable {
+                                        selectedListIds = if (isSelected) {
+                                            selectedListIds - list.id
+                                        } else {
+                                            selectedListIds + list.id
+                                        }
+                                    }
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                Checkbox(
+                                    checked = isSelected,
+                                    onCheckedChange = { checked ->
+                                        selectedListIds = if (checked) {
+                                            selectedListIds + list.id
+                                        } else {
+                                            selectedListIds - list.id
+                                        }
+                                    },
+                                    colors = CheckboxDefaults.colors(
+                                        checkedColor = colors.accent,
+                                        uncheckedColor = colors.textMuted,
+                                    ),
+                                )
+                                Text(
+                                    text = list.name,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = colors.text,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                )
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (isCreatingNewList) colors.accent.copy(alpha = 0.15f) else Color.Transparent)
+                                .clickable { isCreatingNewList = !isCreatingNewList }
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Checkbox(
+                                checked = isCreatingNewList,
+                                onCheckedChange = { isCreatingNewList = it },
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = colors.accent,
+                                    uncheckedColor = colors.textMuted,
+                                ),
+                            )
+                            Text(
+                                text = "Create new list...",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = colors.textMuted,
+                            )
+                        }
+                    }
+                }
+
+                if (isCreatingNewList || lists.isEmpty()) {
+                    OutlinedTextField(
+                        value = newListName,
+                        onValueChange = onNewListNameChanged,
+                        label = { Text("New List Name", color = colors.textMuted) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            focusedBorderColor = colors.accent,
+                            unfocusedBorderColor = colors.textMuted.copy(alpha = 0.35f),
+                            focusedTextColor = colors.text,
+                            unfocusedTextColor = colors.text,
+                        ),
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            val canConfirm = !isAdding && (selectedListIds.isNotEmpty() || (isCreatingNewList && newListName.isNotBlank()))
+            TextButton(
+                enabled = canConfirm,
+                onClick = {
+                    onAddToLists(
+                        selectedListIds,
+                        if (isCreatingNewList) newListName else null,
+                    )
+                },
+            ) {
+                Text(
+                    text = if (isAdding) "Adding..." else "Add",
+                    color = colors.accent,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = "Cancel",
+                    color = colors.textMuted,
+                )
+            }
+        },
+    )
 }

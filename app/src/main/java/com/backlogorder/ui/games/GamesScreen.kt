@@ -58,15 +58,29 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 
-data class GameEntryWithListName(
-    val entry: ListEntry,
-    val listName: String,
-)
+data class GameWithLists(
+    val game: com.backlogorder.domain.model.Game,
+    val listEntries: List<ListEntry>,
+    val listNames: List<String>,
+    val primaryEntry: ListEntry,
+) {
+    val listNamesDisplay: String
+        get() = when {
+            listNames.isEmpty() -> "No List"
+            listNames.size == 1 -> "List: ${listNames.first()}"
+            else -> "Lists: ${listNames.joinToString(", ")}"
+        }
+
+    val primaryStatus: GameStatus
+        get() = listEntries.firstOrNull { it.status == GameStatus.PLAYING }?.status
+            ?: listEntries.firstOrNull { it.status == GameStatus.BACKLOG }?.status
+            ?: primaryEntry.status
+}
 
 data class GamesUiState(
-    val entries: List<GameEntryWithListName> = emptyList(),
+    val entries: List<GameWithLists> = emptyList(),
     val filter: FilterState = FilterState(),
-    val filteredEntries: List<GameEntryWithListName> = emptyList(),
+    val filteredEntries: List<GameWithLists> = emptyList(),
     val isLoading: Boolean = true,
 )
 
@@ -84,17 +98,24 @@ class GamesViewModel(
                 listsRepository.observeLists(),
             ) { entries, lists ->
                 val listNameMap = lists.associate { it.id to it.name }
-                val gameEntries = entries
-                    .map { entry -> GameEntryWithListName(entry, listNameMap[entry.listId] ?: "Custom List") }
-                    .sortedByDescending { ScoreCalculator.computeScore(it.entry.game) ?: -1.0 }
+                val groupedByGame = entries.groupBy { it.game.id }
+
+                val gameWithListsItems = groupedByGame.map { (_, gameEntries) ->
+                    val game = gameEntries.first().game
+                    val listNames = gameEntries.mapNotNull { listNameMap[it.listId] }.distinct()
+                    GameWithLists(
+                        game = game,
+                        listEntries = gameEntries,
+                        listNames = listNames,
+                        primaryEntry = gameEntries.first(),
+                    )
+                }.sortedByDescending { ScoreCalculator.computeScore(it.game) ?: -1.0 }
 
                 val filter = _uiState.value.filter
-                val filtered = gameEntries.filter { item ->
-                    GameFilters.matches(item.entry, filter)
-                }
+                val filtered = filterGameWithLists(gameWithListsItems, filter)
 
                 _uiState.value = _uiState.value.copy(
-                    entries = gameEntries,
+                    entries = gameWithListsItems,
                     filteredEntries = filtered,
                     isLoading = false,
                 )
@@ -126,13 +147,20 @@ class GamesViewModel(
 
     private fun applyFilter(newFilter: FilterState) {
         val entries = _uiState.value.entries
-        val filtered = entries.filter { item ->
-            GameFilters.matches(item.entry, newFilter)
-        }
+        val filtered = filterGameWithLists(entries, newFilter)
         _uiState.value = _uiState.value.copy(
             filter = newFilter,
             filteredEntries = filtered,
         )
+    }
+
+    private fun filterGameWithLists(
+        items: List<GameWithLists>,
+        filter: FilterState,
+    ): List<GameWithLists> {
+        return items.filter { item ->
+            item.listEntries.any { entry -> GameFilters.matches(entry, filter) }
+        }
     }
 }
 
@@ -209,14 +237,13 @@ fun GamesScreen(
                 ) {
                     items(
                         items = uiState.filteredEntries,
-                        key = { "${it.entry.listId}-${it.entry.game.id}" },
+                        key = { it.game.id },
                         contentType = { "game_item" },
                     ) { item ->
-                        val score = ScoreCalculator.computeScore(item.entry.game)
+                        val score = ScoreCalculator.computeScore(item.game)
                         BevelFrame(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onGameClick(item.entry.listId, item.entry.game.id) },
+                            onClick = { onGameClick(item.primaryEntry.listId, item.game.id) },
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
                             Row(
                                 modifier = Modifier
@@ -226,10 +253,10 @@ fun GamesScreen(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
                                 // Cover / Initials
-                                if (!item.entry.game.backgroundImage.isNullOrBlank() || !item.entry.game.backgroundImageUrl.isNullOrBlank()) {
+                                if (!item.game.backgroundImage.isNullOrBlank() || !item.game.backgroundImageUrl.isNullOrBlank()) {
                                     BevelImage(
-                                        game = item.entry.game,
-                                        contentDescription = item.entry.game.name,
+                                        game = item.game,
+                                        contentDescription = item.game.name,
                                         modifier = Modifier
                                             .size(56.dp)
                                             .clip(RoundedCornerShape(12.dp)),
@@ -237,7 +264,7 @@ fun GamesScreen(
                                 } else {
                                     HexShape(modifier = Modifier.size(56.dp), color = colors.accent.copy(alpha = 0.2f)) {
                                         Text(
-                                            text = item.entry.game.name.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                                            text = item.game.name.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
                                             color = colors.text,
                                             style = MaterialTheme.typography.titleMedium,
                                         )
@@ -250,14 +277,14 @@ fun GamesScreen(
                                     verticalArrangement = Arrangement.spacedBy(4.dp),
                                 ) {
                                     Text(
-                                        text = item.entry.game.name,
+                                        text = item.game.name,
                                         style = MaterialTheme.typography.titleMedium,
                                         color = colors.text,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                     )
                                     Text(
-                                        text = "List: ${item.listName}",
+                                        text = item.listNamesDisplay,
                                         style = MaterialTheme.typography.bodySmall,
                                         color = colors.textMuted,
                                         maxLines = 1,
@@ -271,7 +298,7 @@ fun GamesScreen(
                                     verticalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
                                     ScoreTag(score = score)
-                                    StatusBadge(status = item.entry.status)
+                                    StatusBadge(status = item.primaryStatus)
                                 }
                             }
                         }
@@ -279,15 +306,15 @@ fun GamesScreen(
                 }
             }
         }
-    }
-    }
 
-    if (showFilterSheet) {
-        FilterSheet(
-            filter = uiState.filter,
-            onStatusToggle = viewModel::onStatusToggled,
-            onClear = viewModel::clearFilters,
-            onDismiss = { showFilterSheet = false },
-        )
+        if (showFilterSheet) {
+            FilterSheet(
+                filter = uiState.filter,
+                onStatusToggle = viewModel::onStatusToggled,
+                onClear = viewModel::clearFilters,
+                onDismiss = { showFilterSheet = false },
+            )
+        }
     }
+}
 }

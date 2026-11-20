@@ -2,6 +2,7 @@ package com.backlogorder.domain.mapper
 
 import com.backlogorder.domain.model.NewGame
 import com.backlogorder.domain.model.RawgGame
+import com.backlogorder.util.FranchiseExtractor
 
 object RawgMapper {
     fun mapRawgGame(rawgGame: RawgGame): NewGame {
@@ -17,7 +18,7 @@ object RawgMapper {
             platforms = rawgGame.platforms,
             tags = rawgGame.tags,
             isManual = false,
-            franchiseName = null,
+            franchiseName = FranchiseExtractor.extractFranchiseName(rawgGame.name, rawgGame.tags),
             franchiseOrder = null,
         )
     }
